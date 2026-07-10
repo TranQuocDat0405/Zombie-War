@@ -17,7 +17,7 @@ namespace ZombieWar.Core
         [SerializeField] private float minDistance = 4f;
         [SerializeField] private float maxDistance = 9f;
         [SerializeField] private float arenaLimit = 26f;
-        [SerializeField] private int maxActive = 4;
+        [SerializeField] private int maxActive = 5;
 
         private Transform player;
         private float nextSpawn;
@@ -36,7 +36,12 @@ namespace ZombieWar.Core
         {
             if (GameManager.Instance == null || GameManager.Instance.State != GameState.Playing) return;
             if (Time.time < nextSpawn) return;
-            nextSpawn = Time.time + Random.Range(minInterval, maxInterval);
+
+            // Drops arrive much faster late game to keep pace with the bigger horde.
+            var gm = GameManager.Instance;
+            float total = gm.TimeElapsed + gm.TimeRemaining;
+            float fraction = total > 0f ? gm.TimeElapsed / total : 0f;
+            nextSpawn = Time.time + Random.Range(minInterval, maxInterval) * Mathf.Lerp(1f, 0.45f, fraction);
 
             if (player == null)
             {

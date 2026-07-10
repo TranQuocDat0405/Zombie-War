@@ -19,6 +19,8 @@ namespace ZombieWar.Player
         private float verticalVelocity;
 
         private static readonly int SpeedHash = Animator.StringToHash("Speed");
+        private static readonly int MoveXHash = Animator.StringToHash("MoveX");
+        private static readonly int MoveYHash = Animator.StringToHash("MoveY");
 
         public Vector3 MoveDirection { get; private set; }
 
@@ -58,6 +60,12 @@ namespace ZombieWar.Player
             if (animator != null)
             {
                 animator.SetFloat(SpeedHash, input.magnitude, 0.08f, Time.deltaTime);
+
+                // Movement relative to facing: walking away from the aim target
+                // plays the run cycle in reverse (backpedal) instead of moonwalking.
+                Vector3 local = transform.InverseTransformDirection(MoveDirection);
+                animator.SetFloat(MoveXHash, local.x, 0.1f, Time.deltaTime);
+                animator.SetFloat(MoveYHash, local.z, 0.1f, Time.deltaTime);
             }
         }
 

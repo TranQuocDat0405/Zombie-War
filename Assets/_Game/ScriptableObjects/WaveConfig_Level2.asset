@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7c6470735c48b5f42babc1f2f3a65c86, type: 3}
+  m_Name: WaveConfig_Level2
+  m_EditorClassIdentifier: 
+  phases:
+  - startTime: 0
+    spawnInterval: 2.5
+    zombiesPerTick: 2
+    maxAlive: 10
+    spawnGiantAtStart: 0
+  - startTime: 30
+    spawnInterval: 2
+    zombiesPerTick: 3
+    maxAlive: 14
+    spawnGiantAtStart: 0
+  - startTime: 60
+    spawnInterval: 1.8
+    zombiesPerTick: 3
+    maxAlive: 18
+    spawnGiantAtStart: 1
+  - startTime: 105
+    spawnInterval: 1.4
+    zombiesPerTick: 4
+    maxAlive: 22
+    spawnGiantAtStart: 1
+  - startTime: 150
+    spawnInterval: 1
+    zombiesPerTick: 5
+    maxAlive: 28
+    spawnGiantAtStart: 1

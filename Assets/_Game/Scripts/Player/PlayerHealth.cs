@@ -27,6 +27,13 @@ namespace ZombieWar.Player
             health = maxHealth;
         }
 
+        public void Heal(float amount)
+        {
+            if (IsDead) return;
+            health = Mathf.Min(maxHealth, health + amount);
+            OnHealthChanged?.Invoke(health, maxHealth);
+        }
+
         public void TakeDamage(float amount, Vector3 hitPoint, Vector3 hitDirection)
         {
             if (IsDead) return;

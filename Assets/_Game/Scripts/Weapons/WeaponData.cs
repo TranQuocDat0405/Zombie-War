@@ -18,6 +18,11 @@ namespace ZombieWar.Weapons
         public int pelletCount = 1;        // >1 = shotgun spread
         public float spreadAngle = 1.5f;   // degrees, per pellet
 
+        [Header("Ammo")]
+        public int magazineSize = 30;
+        public int reserveAmmo = 90;       // starting reserve
+        public float reloadTime = 1.6f;
+
         [Header("Feel")]
         public float recoilKick = 0.05f;   // gun model kickback metres
         public float cameraShake = 0.08f;

@@ -65,6 +65,15 @@ namespace ZombieWar.Zombie
             }
         }
 
+        /// <summary>Directional shove for bullet kills so the body falls away from the shot.</summary>
+        public void ApplyImpulse(Vector3 impulse)
+        {
+            foreach (var rb in bodies)
+            {
+                rb.AddForce(impulse, ForceMode.Impulse);
+            }
+        }
+
         public void OnSpawned()
         {
             SetRagdoll(false);

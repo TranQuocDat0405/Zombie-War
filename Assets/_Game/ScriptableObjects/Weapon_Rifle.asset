@@ -15,11 +15,14 @@ MonoBehaviour:
   displayName: Rifle
   icon: {fileID: 0}
   gunModelPrefab: {fileID: 2477277206056751841, guid: 11bb193aa7552024d996ab7454734e40, type: 3}
-  damage: 11
-  fireRate: 7
-  range: 12
+  damage: 14
+  fireRate: 5
+  range: 8.5
   pelletCount: 1
   spreadAngle: 1.5
+  magazineSize: 30
+  reserveAmmo: 45
+  reloadTime: 2.2
   recoilKick: 0.04
   cameraShake: 0.06
   shootAnimSpeed: 1.6

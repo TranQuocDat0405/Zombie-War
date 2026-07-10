@@ -18,6 +18,9 @@ namespace ZombieWar.Zombie
 
         public static int AliveCount { get; private set; }
 
+        /// <summary>Static counter survives scene reloads — must be reset by the spawner on load.</summary>
+        public static void ResetAliveCount() { AliveCount = 0; }
+
         private ZombieAI ai;
         private ZombieRagdoll ragdoll;
         private DissolveEffect dissolve;
@@ -44,7 +47,7 @@ namespace ZombieWar.Zombie
             if (IsDead) return;
             health -= amount;
             if (dissolve != null) dissolve.Flash();
-            if (health <= 0f) Die(false, Vector3.zero, 0f, 0f);
+            if (health <= 0f) DieByBullet(hitDirection);
         }
 
         public void TakeExplosion(float damage, Vector3 center, float force, float radius)
@@ -52,10 +55,44 @@ namespace ZombieWar.Zombie
             if (IsDead) return;
             health -= damage;
             if (dissolve != null) dissolve.Flash();
-            if (health <= 0f) Die(true, center, force, radius);
+            if (health <= 0f) DieByExplosion(center, force, radius);
         }
 
-        private void Die(bool explosive, Vector3 center, float force, float radius)
+        private void DieByBullet(Vector3 hitDirection)
+        {
+            BeginDeath();
+            if (ragdoll != null)
+            {
+                // Fall over away from the shot, same physics death as the bomb.
+                ragdoll.SetRagdoll(true);
+                Vector3 shove = hitDirection.normalized * 1.6f + Vector3.up * 0.35f;
+                ragdoll.ApplyImpulse(shove);
+                StartCoroutine(DeathRoutine(ragdollDeathDelay));
+            }
+            else
+            {
+                if (animator != null) animator.enabled = false; // freeze last pose
+                StartCoroutine(DeathRoutine(normalDeathDelay));
+            }
+        }
+
+        private void DieByExplosion(Vector3 center, float force, float radius)
+        {
+            BeginDeath();
+            if (ragdoll != null)
+            {
+                ragdoll.SetRagdoll(true);
+                ragdoll.ApplyExplosion(force, center, radius, 0.6f);
+                StartCoroutine(DeathRoutine(ragdollDeathDelay));
+            }
+            else
+            {
+                if (animator != null) animator.enabled = false;
+                StartCoroutine(DeathRoutine(normalDeathDelay));
+            }
+        }
+
+        private void BeginDeath()
         {
             IsDead = true;
             AliveCount = Mathf.Max(0, AliveCount - 1);
@@ -69,18 +106,6 @@ namespace ZombieWar.Zombie
 
             if (ai != null) ai.DisableAI();
             foreach (var col in hitColliders) col.enabled = false;
-
-            if (explosive && ragdoll != null)
-            {
-                ragdoll.SetRagdoll(true);
-                ragdoll.ApplyExplosion(force, center, radius, 0.6f);
-                StartCoroutine(DeathRoutine(ragdollDeathDelay));
-            }
-            else
-            {
-                if (animator != null) animator.enabled = false; // freeze last pose
-                StartCoroutine(DeathRoutine(normalDeathDelay));
-            }
         }
 
         private IEnumerator DeathRoutine(float delay)

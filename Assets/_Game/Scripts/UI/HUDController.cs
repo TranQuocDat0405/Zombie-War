@@ -19,7 +19,9 @@ namespace ZombieWar.UI
         [SerializeField] private Text timerText;
         [SerializeField] private Text killsText;
         [SerializeField] private Text weaponLabel;
+        [SerializeField] private Text ammoText;
         [SerializeField] private Image bombCooldownFill;
+        [SerializeField] private Text bombCountText;
         [SerializeField] private DamageFlashUI damageFlash;
         [SerializeField] private ResultPanel resultPanel;
 
@@ -34,13 +36,20 @@ namespace ZombieWar.UI
             if (weaponController != null)
             {
                 weaponController.OnWeaponChanged += OnWeaponChanged;
+                weaponController.OnAmmoChanged += OnAmmoChanged;
                 if (weaponController.CurrentWeapon != null) OnWeaponChanged(weaponController.CurrentWeapon);
+                OnAmmoChanged();
             }
             if (GameManager.Instance != null)
             {
                 GameManager.Instance.OnKillsChanged += OnKillsChanged;
                 GameManager.Instance.OnStateChanged += OnStateChanged;
                 OnKillsChanged(GameManager.Instance.Kills);
+            }
+            if (bombThrower != null)
+            {
+                bombThrower.OnBombCountChanged += OnBombCountChanged;
+                OnBombCountChanged();
             }
         }
 
@@ -51,12 +60,24 @@ namespace ZombieWar.UI
                 playerHealth.OnHealthChanged -= OnHealthChanged;
                 playerHealth.OnDamaged -= OnPlayerDamaged;
             }
-            if (weaponController != null) weaponController.OnWeaponChanged -= OnWeaponChanged;
+            if (weaponController != null)
+            {
+                weaponController.OnWeaponChanged -= OnWeaponChanged;
+                weaponController.OnAmmoChanged -= OnAmmoChanged;
+            }
             if (GameManager.Instance != null)
             {
                 GameManager.Instance.OnKillsChanged -= OnKillsChanged;
                 GameManager.Instance.OnStateChanged -= OnStateChanged;
             }
+            if (bombThrower != null) bombThrower.OnBombCountChanged -= OnBombCountChanged;
+        }
+
+        private void OnBombCountChanged()
+        {
+            if (bombCountText == null || bombThrower == null) return;
+            bombCountText.text = "x" + bombThrower.BombCount;
+            bombCountText.color = bombThrower.BombCount > 0 ? Color.white : new Color(1f, 0.35f, 0.3f);
         }
 
         private void Update()
@@ -70,6 +91,21 @@ namespace ZombieWar.UI
             {
                 bombCooldownFill.fillAmount = 1f - bombThrower.CooldownRemaining / bombThrower.Cooldown;
             }
+            if (weaponController != null && ammoText != null && weaponController.IsReloading)
+            {
+                ammoText.text = "RELOAD " + Mathf.RoundToInt(weaponController.ReloadProgress * 100f) + "%";
+                ammoText.color = new Color(1f, 0.6f, 0.2f);
+            }
+        }
+
+        private void OnAmmoChanged()
+        {
+            if (ammoText == null || weaponController == null) return;
+            if (weaponController.IsReloading) return; // Update() shows reload progress
+            ammoText.text = weaponController.CurrentAmmo + " / " + weaponController.CurrentReserve;
+            ammoText.color = weaponController.CurrentAmmo == 0 && weaponController.CurrentReserve == 0
+                ? new Color(1f, 0.3f, 0.25f)
+                : Color.white;
         }
 
         private void OnHealthChanged(float health, float max)

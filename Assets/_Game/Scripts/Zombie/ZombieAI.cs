@@ -19,6 +19,10 @@ namespace ZombieWar.Zombie
         [SerializeField] private Animator animator;
         [SerializeField] private AudioClip[] growlClips;
         [SerializeField] private AudioClip attackClip;
+        [Tooltip("Runner variant: freeze and play the Scream state for this long after spawning.")]
+        [SerializeField] private float spawnScreamDuration = 0f;
+        [Tooltip("Base animator playback speed — lets big/slow variants match feet to velocity.")]
+        [SerializeField] private float animatorBaseSpeed = 1f;
 
         private NavMeshAgent agent;
         private ZombieHealth health;
@@ -27,15 +31,27 @@ namespace ZombieWar.Zombie
         private float nextRepath;
         private float nextAttack;
         private float nextGrowl;
+        private float baseSpeed;
+        private float frozenUntil;
 
         private static readonly int SpeedHash = Animator.StringToHash("Speed");
         private static readonly int AttackHash = Animator.StringToHash("Attack");
+        private static readonly int ScreamHash = Animator.StringToHash("Scream");
 
         private void Awake()
         {
             agent = GetComponent<NavMeshAgent>();
             health = GetComponent<ZombieHealth>();
+            baseSpeed = agent.speed;
             if (animator == null) animator = GetComponentInChildren<Animator>();
+            if (animator != null) animator.speed = animatorBaseSpeed;
+        }
+
+        public void SetSpeedMultiplier(float multiplier)
+        {
+            agent.speed = baseSpeed * multiplier;
+            // Keep feet in sync with the faster movement so zombies never glide.
+            if (animator != null) animator.speed = animatorBaseSpeed * multiplier;
         }
 
         private void Update()
@@ -53,6 +69,15 @@ namespace ZombieWar.Zombie
             if (target == null)
             {
                 AcquireTarget();
+                return;
+            }
+
+            // Spawn scream: rooted in place, facing the player, before charging.
+            if (Time.time < frozenUntil)
+            {
+                agent.isStopped = true;
+                FaceTarget();
+                if (animator != null) animator.SetFloat(SpeedHash, 0f);
                 return;
             }
 
@@ -113,7 +138,8 @@ namespace ZombieWar.Zombie
         {
             if (health != null && health.IsDead) return;
             if (target == null || targetDamageable == null || targetDamageable.IsDead) return;
-            if (Vector3.Distance(transform.position, target.position) <= attackRange + 0.6f)
+            // Generous grace range so side-stepping mid-swing doesn't always dodge the hit.
+            if (Vector3.Distance(transform.position, target.position) <= attackRange + 1.2f)
             {
                 Vector3 dir = (target.position - transform.position).normalized;
                 targetDamageable.TakeDamage(attackDamage, target.position, dir);
@@ -147,10 +173,24 @@ namespace ZombieWar.Zombie
             nextAttack = 0f;
             nextRepath = 0f;
             nextGrowl = Time.time + Random.Range(0f, 4f);
+            agent.speed = baseSpeed; // spawner re-applies the time-based multiplier
+            if (animator != null) animator.speed = animatorBaseSpeed;
             if (!agent.enabled) agent.enabled = true;
             agent.Warp(transform.position);
             agent.isStopped = false;
             AcquireTarget();
+
+            frozenUntil = 0f;
+            if (spawnScreamDuration > 0f)
+            {
+                frozenUntil = Time.time + spawnScreamDuration;
+                if (animator != null) animator.SetTrigger(ScreamHash);
+                if (growlClips != null && growlClips.Length > 0 && AudioManager.Instance != null)
+                {
+                    AudioManager.Instance.PlaySfx(
+                        growlClips[Random.Range(0, growlClips.Length)], transform.position, 0.9f, 1.1f);
+                }
+            }
         }
 
         public void OnDespawned()

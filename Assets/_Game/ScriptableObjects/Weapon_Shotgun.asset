@@ -17,9 +17,12 @@ MonoBehaviour:
   gunModelPrefab: {fileID: 9054887046875825102, guid: 3730afa685d65fe4fb62c8178f7048dc, type: 3}
   damage: 9
   fireRate: 1.6
-  range: 9
+  range: 7
   pelletCount: 6
   spreadAngle: 9
+  magazineSize: 6
+  reserveAmmo: 18
+  reloadTime: 2.8
   recoilKick: 0.12
   cameraShake: 0.18
   shootAnimSpeed: 0.9

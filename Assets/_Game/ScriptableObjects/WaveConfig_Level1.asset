@@ -14,27 +14,27 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   phases:
   - startTime: 0
-    spawnInterval: 3
-    zombiesPerTick: 2
-    maxAlive: 8
-    spawnGiantAtStart: 0
-  - startTime: 35
-    spawnInterval: 2.5
+    spawnInterval: 2.2
     zombiesPerTick: 2
     maxAlive: 12
     spawnGiantAtStart: 0
-  - startTime: 70
-    spawnInterval: 2
-    zombiesPerTick: 3
-    maxAlive: 16
-    spawnGiantAtStart: 0
-  - startTime: 110
+  - startTime: 30
     spawnInterval: 1.6
     zombiesPerTick: 3
-    maxAlive: 20
+    maxAlive: 18
     spawnGiantAtStart: 0
-  - startTime: 145
+  - startTime: 65
     spawnInterval: 1.2
     zombiesPerTick: 4
     maxAlive: 25
+    spawnGiantAtStart: 0
+  - startTime: 105
+    spawnInterval: 0.9
+    zombiesPerTick: 5
+    maxAlive: 33
+    spawnGiantAtStart: 0
+  - startTime: 140
+    spawnInterval: 0.6
+    zombiesPerTick: 6
+    maxAlive: 42
     spawnGiantAtStart: 0

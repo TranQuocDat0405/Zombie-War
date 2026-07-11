@@ -138,8 +138,8 @@ namespace ZombieWar.Zombie
         {
             if (health != null && health.IsDead) return;
             if (target == null || targetDamageable == null || targetDamageable.IsDead) return;
-            // Generous grace range so side-stepping mid-swing doesn't always dodge the hit.
-            if (Vector3.Distance(transform.position, target.position) <= attackRange + 1.2f)
+            // Grace range so a player strafing mid-swing still takes the hit.
+            if (Vector3.Distance(transform.position, target.position) <= attackRange + 0.9f)
             {
                 Vector3 dir = (target.position - transform.position).normalized;
                 targetDamageable.TakeDamage(attackDamage, target.position, dir);

@@ -25,6 +25,7 @@ namespace ZombieWar.Weapons
 
         private GameObject[] gunInstances;
         private Transform[] muzzles;
+        private ParticleSystem[] muzzleFlashes; // persistent, childed to each muzzle
         private int[] ammo;      // rounds left in magazine, per weapon
         private int[] reserve;   // reserve rounds, per weapon
         private int currentIndex;
@@ -68,6 +69,7 @@ namespace ZombieWar.Weapons
         {
             gunInstances = new GameObject[weapons.Length];
             muzzles = new Transform[weapons.Length];
+            muzzleFlashes = new ParticleSystem[weapons.Length];
 
             if (handSocket == null)
             {
@@ -85,6 +87,25 @@ namespace ZombieWar.Weapons
                 gunInstances[i] = model;
                 var muzzle = model.transform.Find("Muzzle");
                 muzzles[i] = muzzle != null ? muzzle : model.transform;
+
+                // The muzzle flash lives permanently on the muzzle and is replayed
+                // per shot: always in sync with the tracer, never drifts or leaks.
+                if (weapons[i].muzzleFlashPrefab != null)
+                {
+                    var fx = Instantiate(weapons[i].muzzleFlashPrefab, muzzles[i]);
+                    fx.transform.localPosition = Vector3.zero;
+                    fx.transform.localRotation = Quaternion.identity;
+                    var pooled = fx.GetComponent<PooledAutoRelease>();
+                    if (pooled != null) Destroy(pooled); // not pooled in this mode
+                    foreach (var ps in fx.GetComponentsInChildren<ParticleSystem>(true))
+                    {
+                        var main = ps.main;
+                        main.playOnAwake = false;
+                        main.loop = false; // one burst per shot — never keeps flashing on its own
+                    }
+                    muzzleFlashes[i] = fx.GetComponentInChildren<ParticleSystem>(true);
+                }
+
                 model.SetActive(false);
             }
         }
@@ -221,11 +242,11 @@ namespace ZombieWar.Weapons
                 }
             }
 
-            if (weapon.muzzleFlashPrefab != null)
+            var flash = muzzleFlashes[currentIndex];
+            if (flash != null)
             {
-                var flash = ObjectPool.Spawn(weapon.muzzleFlashPrefab, muzzlePos, muzzles[currentIndex].rotation);
-                // Follow the gun so the flash never lingers behind when the player turns.
-                flash.transform.SetParent(handSocket, true);
+                flash.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                flash.Play(true); // same frame as the tracer/raycast
             }
             if (weapon.fireClip != null && AudioManager.Instance != null)
             {

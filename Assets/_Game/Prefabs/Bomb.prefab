@@ -154,4 +154,4 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 512
   explosionVfx: {fileID: 4977496521389837387, guid: b0d6a843e76c3ce4f8111f2df11f7edd, type: 3}
-  explosionClip: {fileID: 8300000, guid: bd67058a6079faf40b2dbfb35ea160b1, type: 3}
+  explosionClip: {fileID: 8300000, guid: 22405bd9a808da044b0c158efaf86873, type: 3}

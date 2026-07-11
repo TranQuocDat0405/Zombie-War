@@ -12,12 +12,12 @@ namespace ZombieWar.Core
         [SerializeField] private GameObject healthPrefab;
         [SerializeField] private GameObject ammoPrefab;
         [SerializeField] private GameObject bombPrefab;
-        [SerializeField] private float minInterval = 9f;
-        [SerializeField] private float maxInterval = 14f;
+        [SerializeField] private float minInterval = 5.5f;
+        [SerializeField] private float maxInterval = 8.5f;
         [SerializeField] private float minDistance = 4f;
         [SerializeField] private float maxDistance = 9f;
         [SerializeField] private float arenaLimit = 26f;
-        [SerializeField] private int maxActive = 5;
+        [SerializeField] private int maxActive = 6;
 
         private Transform player;
         private float nextSpawn;

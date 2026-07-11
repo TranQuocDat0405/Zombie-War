@@ -29,4 +29,4 @@ MonoBehaviour:
   muzzleFlashPrefab: {fileID: 6208181078948744958, guid: 13ebd8b63d1b60e4b965ea7498db9685, type: 3}
   impactPrefab: {fileID: 4053919266085612937, guid: 51f30d236b9702843a0a24f67616bbc5, type: 3}
   fireClip: {fileID: 8300000, guid: 8581f806dddef8046b4942de05b897be, type: 3}
-  fireVolume: 0.45
+  fireVolume: 0.33749998

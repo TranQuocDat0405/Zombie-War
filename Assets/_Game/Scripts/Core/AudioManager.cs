@@ -50,7 +50,10 @@ namespace ZombieWar.Core
             }
         }
 
-        public void PlaySfx(AudioClip clip, Vector3 position, float volume = 1f, float pitch = 1f, bool spatial = true)
+        /// <param name="minDistance">3D loudness plateau radius — big values (10+) make the
+        /// sound dominate a wide area while still being directional (explosions).</param>
+        public void PlaySfx(AudioClip clip, Vector3 position, float volume = 1f, float pitch = 1f,
+            bool spatial = true, float minDistance = 1.5f)
         {
             if (clip == null || sources == null) return;
             var src = sources[next];
@@ -58,6 +61,8 @@ namespace ZombieWar.Core
             src.transform.position = position;
             src.spatialBlend = spatial ? 1f : 0f;
             src.pitch = pitch;
+            src.minDistance = minDistance;
+            src.maxDistance = Mathf.Max(40f, minDistance * 6f);
             src.PlayOneShot(clip, volume);
         }
 

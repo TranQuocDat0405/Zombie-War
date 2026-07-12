@@ -42,12 +42,18 @@ namespace ZombieWar.Core
             musicSource = gameObject.AddComponent<AudioSource>();
             musicSource.loop = true;
             musicSource.spatialBlend = 0f;
-            musicSource.volume = musicVolume;
+            RefreshMusicVolume();
             if (music != null)
             {
                 musicSource.clip = music;
                 musicSource.Play();
             }
+        }
+
+        /// <summary>Re-applies the persisted music volume setting.</summary>
+        public void RefreshMusicVolume()
+        {
+            if (musicSource != null) musicSource.volume = musicVolume * GameSettings.MusicVolume;
         }
 
         /// <param name="minDistance">3D loudness plateau radius — big values (10+) make the
@@ -63,7 +69,7 @@ namespace ZombieWar.Core
             src.pitch = pitch;
             src.minDistance = minDistance;
             src.maxDistance = Mathf.Max(40f, minDistance * 6f);
-            src.PlayOneShot(clip, volume);
+            src.PlayOneShot(clip, volume * GameSettings.SfxVolume);
         }
 
         public void PlaySfxRandomPitch(AudioClip clip, Vector3 position, float volume = 1f)

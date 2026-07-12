@@ -74,13 +74,16 @@ namespace ZombieWar.Core
         public void RestartLevel()
         {
             Time.timeScale = 1f;
-            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+            string current = SceneManager.GetActiveScene().name;
+            if (SceneLoader.Instance != null) SceneLoader.Load(current);
+            else SceneManager.LoadScene(current);
         }
 
         public void LoadScene(string sceneName)
         {
             Time.timeScale = 1f;
-            SceneManager.LoadScene(sceneName);
+            if (SceneLoader.Instance != null) SceneLoader.Load(sceneName);
+            else SceneManager.LoadScene(sceneName);
         }
 
         private void OnDestroy()

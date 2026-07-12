@@ -110,7 +110,12 @@ namespace ZombieWar.UI
 
         private void OnHealthChanged(float health, float max)
         {
-            if (healthFill != null) healthFill.fillAmount = health / max;
+            if (healthFill == null) return;
+            // 9-sliced fill: resize via anchors so the rounded caps never stretch.
+            float pct = Mathf.Clamp01(health / max);
+            var rt = healthFill.rectTransform;
+            rt.anchorMax = new Vector2(Mathf.Lerp(0.03f, 1f, pct), 1f);
+            healthFill.enabled = pct > 0.001f;
         }
 
         private void OnPlayerDamaged()

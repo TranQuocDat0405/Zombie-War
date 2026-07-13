@@ -98,7 +98,8 @@ MonoBehaviour:
   attackRange: 1.5
   attackDamage: 10
   attackCooldown: 0.9
-  damageDelay: 0.35
+  damageDelay: 0.53
+  swingLock: 0.3
   repathInterval: 0.25
   animator: {fileID: 0}
   growlClips:

@@ -15,7 +15,6 @@ namespace ZombieWar.Weapons
         [SerializeField] private WeaponData[] weapons;
         [SerializeField] private Transform handSocket;
         [SerializeField] private Recoil bodyRecoil;     // soldier mesh root, kicks with the gun
-        [SerializeField] private GameObject tracerPrefab;
         [SerializeField] private LayerMask hitMask;      // Zombie + obstacles
         [SerializeField] private float aimHeight = 1.1f; // aim at zombie chest
 
@@ -206,9 +205,11 @@ namespace ZombieWar.Weapons
         {
             ammo[currentIndex]--;
 
+            // Bullets leave the barrel, so the barrel is the only correct origin —
+            // the old hitscan fired from the chest, which is why the tracer never
+            // lined up with what actually got hit.
             Vector3 muzzlePos = muzzles[currentIndex].position;
-            Vector3 origin = transform.position + Vector3.up * aimHeight;
-            Vector3 baseDir = (aimPoint - origin).normalized;
+            Vector3 baseDir = (LeadTarget(weapon, muzzlePos, aimPoint) - muzzlePos).normalized;
 
             for (int i = 0; i < weapon.pelletCount; i++)
             {
@@ -220,25 +221,11 @@ namespace ZombieWar.Weapons
                     dir = Quaternion.Euler(pitch, yaw, 0f) * dir;
                 }
 
-                Vector3 end = origin + dir * weapon.range;
-                if (Physics.Raycast(origin, dir, out RaycastHit hit, weapon.range, hitMask, QueryTriggerInteraction.Ignore))
+                if (weapon.bulletPrefab != null)
                 {
-                    end = hit.point;
-                    var damageable = hit.collider.GetComponentInParent<IDamageable>();
-                    if (damageable != null && !damageable.IsDead)
-                    {
-                        damageable.TakeDamage(weapon.damage, hit.point, dir);
-                    }
-                    if (weapon.impactPrefab != null)
-                    {
-                        ObjectPool.Spawn(weapon.impactPrefab, hit.point, Quaternion.LookRotation(hit.normal));
-                    }
-                }
-
-                if (tracerPrefab != null)
-                {
-                    var tracer = ObjectPool.Spawn(tracerPrefab, muzzlePos, Quaternion.identity);
-                    tracer.GetComponent<Tracer>().Show(muzzlePos, end);
+                    var go = ObjectPool.Spawn(weapon.bulletPrefab, muzzlePos, Quaternion.LookRotation(dir));
+                    go.GetComponent<Bullet>().Launch(
+                        dir, weapon.bulletSpeed, weapon.damage, weapon.range, hitMask, weapon.impactPrefab);
                 }
             }
 
@@ -246,7 +233,7 @@ namespace ZombieWar.Weapons
             if (flash != null)
             {
                 flash.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-                flash.Play(true); // same frame as the tracer/raycast
+                flash.Play(true); // same frame the bullet leaves the barrel
             }
             if (weapon.fireClip != null && AudioManager.Instance != null)
             {
@@ -259,6 +246,23 @@ namespace ZombieWar.Weapons
 
             OnAmmoChanged?.Invoke();
             if (ammo[currentIndex] <= 0) TryStartReload();
+        }
+
+        /// <summary>
+        /// Aims where the zombie will be when the bullet arrives, not where it is now.
+        /// Travel time is short (metres / ~45 m-per-sec) so the lead stays subtle and
+        /// the bullet still flies dead straight — no homing needed to land the hit.
+        /// </summary>
+        private Vector3 LeadTarget(WeaponData weapon, Vector3 muzzlePos, Vector3 aimPoint)
+        {
+            var target = autoAim.CurrentTarget;
+            if (target == null || weapon.bulletSpeed <= 0.01f) return aimPoint;
+
+            var agent = target.GetComponentInParent<UnityEngine.AI.NavMeshAgent>();
+            if (agent == null || !agent.enabled) return aimPoint;
+
+            float travelTime = Vector3.Distance(muzzlePos, aimPoint) / weapon.bulletSpeed;
+            return aimPoint + agent.velocity * travelTime;
         }
     }
 }

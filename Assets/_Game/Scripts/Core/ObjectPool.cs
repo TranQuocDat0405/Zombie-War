@@ -46,32 +46,39 @@ namespace ZombieWar.Core
                 instance = inactive.Pop();
             }
 
+            PooledInstance marker;
             if (instance == null)
             {
-                instance = Instantiate(prefab, position, rotation);
-                instance.AddComponent<PooledInstance>().Owner = this;
+                instance = Instantiate(prefab, position, rotation, transform);
+                marker = instance.AddComponent<PooledInstance>();
+                marker.Owner = this;
+                marker.Poolables = instance.GetComponentsInChildren<IPoolable>(true);
             }
             else
             {
+                marker = instance.GetComponent<PooledInstance>();
                 instance.transform.SetPositionAndRotation(position, rotation);
                 instance.SetActive(true);
             }
 
-            foreach (var poolable in instance.GetComponentsInChildren<IPoolable>(true))
+            var poolables = marker.Poolables;
+            for (int i = 0; i < poolables.Length; i++)
             {
-                poolable.OnSpawned();
+                poolables[i].OnSpawned();
             }
             return instance;
         }
 
         private void ReleaseInternal(GameObject instance)
         {
-            foreach (var poolable in instance.GetComponentsInChildren<IPoolable>(true))
+            var marker = instance.GetComponent<PooledInstance>();
+            var poolables = marker.Poolables;
+            for (int i = 0; i < poolables.Length; i++)
             {
-                poolable.OnDespawned();
+                poolables[i].OnDespawned();
             }
             instance.SetActive(false);
-            instance.transform.SetParent(transform, false);
+            instance.transform.SetParent(transform, true);
             inactive.Push(instance);
         }
 
@@ -87,6 +94,9 @@ namespace ZombieWar.Core
     public class PooledInstance : MonoBehaviour
     {
         public ObjectPool Owner { get; set; }
+
+        /// <summary>Cached once on creation — spawning runs every frame while firing.</summary>
+        public IPoolable[] Poolables { get; set; }
     }
 
     public interface IPoolable

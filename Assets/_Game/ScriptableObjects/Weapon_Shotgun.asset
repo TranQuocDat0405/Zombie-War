@@ -20,6 +20,8 @@ MonoBehaviour:
   range: 7
   pelletCount: 6
   spreadAngle: 9
+  bulletPrefab: {fileID: 3085449491774548808, guid: 820748be6d8ba8c44b20b8cbdac8145f, type: 3}
+  bulletSpeed: 32
   magazineSize: 6
   reserveAmmo: 18
   reloadTime: 2.8

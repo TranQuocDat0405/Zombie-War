@@ -14,6 +14,7 @@ namespace ZombieWar.UI
         [SerializeField] private Button level2Button;
         [SerializeField] private TMPro.TextMeshProUGUI level2Label; // "LEVEL 2 - ..." title line
         [SerializeField] private GameObject level2LockedLabel;
+        [SerializeField] private GameObject level2LockIcon; // crossed chains over the locked button
 
         private void Start()
         {
@@ -44,6 +45,7 @@ namespace ZombieWar.UI
                 level2Label.rectTransform.anchoredPosition = level2Open ? Vector2.zero : new Vector2(0f, 16f);
             }
             if (level2LockedLabel != null) level2LockedLabel.SetActive(!level2Open);
+            if (level2LockIcon != null) level2LockIcon.SetActive(!level2Open);
         }
 
         public void OnPlayPressed()

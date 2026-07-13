@@ -12,6 +12,7 @@ namespace ZombieWar.UI
         [SerializeField] private Text statsText;
         [SerializeField] private Text unlockText; // "LEVEL 2 UNLOCKED!" — first win only
         [SerializeField] private GameObject nextLevelButton;
+        [SerializeField] private RectTransform restartButtonRect;
         [SerializeField] private string nextSceneName = "Level2";
         [SerializeField] private AudioSource stingerSource;
         [SerializeField] private AudioClip winClip;
@@ -43,11 +44,15 @@ namespace ZombieWar.UI
                 unlockText.gameObject.SetActive(showUnlock);
                 if (showUnlock) unlockText.text = "LEVEL " + justUnlocked + " UNLOCKED!";
             }
-            if (nextLevelButton != null)
+            bool hasNext = won && nextLevelButton != null && !string.IsNullOrEmpty(nextSceneName)
+                && Application.CanStreamedLevelBeLoaded(nextSceneName);
+            if (nextLevelButton != null) nextLevelButton.SetActive(hasNext);
+
+            // Restart shares a row with Next; with Next hidden it must re-center.
+            if (restartButtonRect != null)
             {
-                bool hasNext = won && !string.IsNullOrEmpty(nextSceneName)
-                    && Application.CanStreamedLevelBeLoaded(nextSceneName);
-                nextLevelButton.SetActive(hasNext);
+                Vector2 p = restartButtonRect.anchoredPosition;
+                restartButtonRect.anchoredPosition = new Vector2(hasNext ? -150f : 0f, p.y);
             }
 
             if (stingerSource != null)

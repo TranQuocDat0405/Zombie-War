@@ -15,6 +15,8 @@ namespace ZombieWar.Zombie
         [SerializeField] private float attackDamage = 10f;
         [SerializeField] private float attackCooldown = 1.5f;
         [SerializeField] private float damageDelay = 0.45f;
+        [Tooltip("How long the zombie roots itself while committing to a swing.")]
+        [SerializeField] private float swingLock = 0.25f;
         [SerializeField] private float repathInterval = 0.25f;
         [SerializeField] private Animator animator;
         [SerializeField] private AudioClip[] growlClips;
@@ -33,6 +35,7 @@ namespace ZombieWar.Zombie
         private float nextGrowl;
         private float baseSpeed;
         private float frozenUntil;
+        private float swingLockUntil;
 
         private static readonly int SpeedHash = Animator.StringToHash("Speed");
         private static readonly int AttackHash = Animator.StringToHash("Attack");
@@ -82,28 +85,41 @@ namespace ZombieWar.Zombie
             }
 
             float dist = Vector3.Distance(transform.position, target.position);
-            if (dist <= attackRange)
+            bool inRange = dist <= attackRange;
+
+            // Only root the zombie for the brief moment it commits to a swing.
+            // Hard-stopping for the whole time it was in range let a running player
+            // (5 m/s) slip straight back out, so the swing always whiffed.
+            bool committed = Time.time < swingLockUntil;
+            agent.isStopped = committed;
+
+            if (!committed)
             {
-                agent.isStopped = true;
+                // Close in, the player outruns a 0.25s repath — track them tightly.
+                float interval = dist < 3f ? 0.08f : repathInterval;
+                if (Time.time >= nextRepath)
+                {
+                    nextRepath = Time.time + interval;
+                    agent.SetDestination(target.position);
+                }
+            }
+
+            if (inRange)
+            {
                 FaceTarget();
-                if (Time.time >= nextAttack)
+                if (Time.time >= nextAttack && FacingTarget(50f))
                 {
                     nextAttack = Time.time + attackCooldown;
+                    swingLockUntil = Time.time + swingLock;
                     if (animator != null) animator.SetTrigger(AttackHash);
                     if (attackClip != null && AudioManager.Instance != null)
                     {
                         AudioManager.Instance.PlaySfxRandomPitch(attackClip, transform.position, 0.7f);
                     }
-                    Invoke(nameof(ApplyDamage), damageDelay);
-                }
-            }
-            else
-            {
-                agent.isStopped = false;
-                if (Time.time >= nextRepath)
-                {
-                    nextRepath = Time.time + repathInterval;
-                    agent.SetDestination(target.position);
+                    // animator.speed is scaled by SetSpeedMultiplier, so a fixed delay
+                    // would drift out of sync with the swing as zombies speed up.
+                    float animSpeed = animator != null ? Mathf.Max(0.1f, animator.speed) : 1f;
+                    Invoke(nameof(ApplyDamage), damageDelay / animSpeed);
                 }
             }
 
@@ -138,12 +154,22 @@ namespace ZombieWar.Zombie
         {
             if (health != null && health.IsDead) return;
             if (target == null || targetDamageable == null || targetDamageable.IsDead) return;
-            // Grace range so a player strafing mid-swing still takes the hit.
-            if (Vector3.Distance(transform.position, target.position) <= attackRange + 0.9f)
-            {
-                Vector3 dir = (target.position - transform.position).normalized;
-                targetDamageable.TakeDamage(attackDamage, target.position, dir);
-            }
+
+            // Small grace only — the old 0.9m slop let a player who merely brushed
+            // past an idle zombie take a hit the swing never came close to landing.
+            if (Vector3.Distance(transform.position, target.position) > attackRange + 0.35f) return;
+            if (!FacingTarget(60f)) return;
+
+            Vector3 dir = (target.position - transform.position).normalized;
+            targetDamageable.TakeDamage(attackDamage, target.position, dir);
+        }
+
+        private bool FacingTarget(float maxAngle)
+        {
+            Vector3 dir = target.position - transform.position;
+            dir.y = 0f;
+            if (dir.sqrMagnitude < 0.001f) return true;
+            return Vector3.Angle(transform.forward, dir) <= maxAngle;
         }
 
         private void FaceTarget()
@@ -152,7 +178,7 @@ namespace ZombieWar.Zombie
             dir.y = 0f;
             if (dir.sqrMagnitude < 0.001f) return;
             transform.rotation = Quaternion.Slerp(
-                transform.rotation, Quaternion.LookRotation(dir), 10f * Time.deltaTime);
+                transform.rotation, Quaternion.LookRotation(dir), 16f * Time.deltaTime);
         }
 
         public void DisableAI()
@@ -172,6 +198,7 @@ namespace ZombieWar.Zombie
         {
             nextAttack = 0f;
             nextRepath = 0f;
+            swingLockUntil = 0f;
             nextGrowl = Time.time + Random.Range(0f, 4f);
             agent.speed = baseSpeed; // spawner re-applies the time-based multiplier
             if (animator != null) animator.speed = animatorBaseSpeed;

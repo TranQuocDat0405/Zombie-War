@@ -18,6 +18,10 @@ namespace ZombieWar.Weapons
         public int pelletCount = 1;        // >1 = shotgun spread
         public float spreadAngle = 1.5f;   // degrees, per pellet
 
+        [Header("Projectile")]
+        public GameObject bulletPrefab;
+        public float bulletSpeed = 45f;    // slow enough to read, fast enough to rarely miss
+
         [Header("Ammo")]
         public int magazineSize = 30;
         public int reserveAmmo = 90;       // starting reserve

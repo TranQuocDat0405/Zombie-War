@@ -10,6 +10,7 @@ namespace ZombieWar.UI
     {
         [SerializeField] private Text titleText;
         [SerializeField] private Text statsText;
+        [SerializeField] private Text unlockText; // "LEVEL 2 UNLOCKED!" — first win only
         [SerializeField] private GameObject nextLevelButton;
         [SerializeField] private string nextSceneName = "Level2";
         [SerializeField] private AudioSource stingerSource;
@@ -34,6 +35,13 @@ namespace ZombieWar.UI
             if (statsText != null && GameManager.Instance != null)
             {
                 statsText.text = "Zombies killed: " + GameManager.Instance.Kills;
+            }
+            if (unlockText != null)
+            {
+                int justUnlocked = GameManager.Instance != null ? GameManager.Instance.JustUnlockedLevel : 0;
+                bool showUnlock = won && justUnlocked > 0;
+                unlockText.gameObject.SetActive(showUnlock);
+                if (showUnlock) unlockText.text = "LEVEL " + justUnlocked + " UNLOCKED!";
             }
             if (nextLevelButton != null)
             {

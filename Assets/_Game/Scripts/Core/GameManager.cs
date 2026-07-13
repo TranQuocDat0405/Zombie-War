@@ -20,6 +20,9 @@ namespace ZombieWar.Core
         public float TimeElapsed => levelDuration - TimeRemaining;
         public int Kills { get; private set; }
 
+        /// <summary>Level number newly unlocked by this win (0 = nothing new).</summary>
+        public int JustUnlockedLevel { get; private set; }
+
         public event Action<GameState> OnStateChanged;
         public event Action<int> OnKillsChanged;
 
@@ -67,6 +70,21 @@ namespace ZombieWar.Core
         private void SetState(GameState state)
         {
             State = state;
+
+            if (state == GameState.Won)
+            {
+                // "Level1" -> unlock level 2; persists via PlayerPrefs.
+                string sceneName = SceneManager.GetActiveScene().name;
+                if (sceneName.StartsWith("Level") &&
+                    int.TryParse(sceneName.Substring(5), out int levelNumber))
+                {
+                    if (GameSettings.UnlockLevel(levelNumber + 1))
+                    {
+                        JustUnlockedLevel = levelNumber + 1;
+                    }
+                }
+            }
+
             OnStateChanged?.Invoke(state);
             if (state != GameState.Playing) Time.timeScale = 0.4f;
         }

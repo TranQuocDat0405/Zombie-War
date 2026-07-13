@@ -8,6 +8,7 @@ namespace ZombieWar.Core
         private const string MusicKey = "MusicVolume";
         private const string SfxKey = "SFXVolume";
         private const string UnlockKey = "HighestUnlockedLevel";
+        private const string TutorialKey = "HasSeenTutorial";
 
         /// <summary>Total number of levels shipped with the game.</summary>
         public const int MaxLevel = 2;
@@ -57,10 +58,22 @@ namespace ZombieWar.Core
             return true;
         }
 
-        /// <summary>Dev-only: wipes level progress (see Editor menu ZombieWar/Reset Level Progress).</summary>
+        /// <summary>Whether the first-time "How to play" panel has been dismissed.</summary>
+        public static bool HasSeenTutorial
+        {
+            get => PlayerPrefs.GetInt(TutorialKey, 0) != 0;
+            set
+            {
+                PlayerPrefs.SetInt(TutorialKey, value ? 1 : 0);
+                PlayerPrefs.Save();
+            }
+        }
+
+        /// <summary>Dev-only: wipes level progress + tutorial flag (Editor menu ZombieWar/Reset Level Progress).</summary>
         public static void ResetProgress()
         {
             PlayerPrefs.DeleteKey(UnlockKey);
+            PlayerPrefs.DeleteKey(TutorialKey);
             PlayerPrefs.Save();
         }
     }

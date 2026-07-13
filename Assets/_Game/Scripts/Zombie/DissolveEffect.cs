@@ -59,6 +59,10 @@ namespace ZombieWar.Zombie
 
         private void SetFloat(int id, float value)
         {
+            // A domain reload while in Play mode wipes these without re-running Awake.
+            if (mpb == null) mpb = new MaterialPropertyBlock();
+            if (renderers == null) renderers = GetComponentsInChildren<Renderer>(true);
+
             for (int i = 0; i < renderers.Length; i++)
             {
                 var r = renderers[i];

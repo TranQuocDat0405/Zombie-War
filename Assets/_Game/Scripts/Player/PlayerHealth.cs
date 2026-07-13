@@ -19,6 +19,11 @@ namespace ZombieWar.Player
         public bool IsDead { get; private set; }
         public Transform Transform => transform;
 
+        // Nothing shoots the player, so there is never damage in flight to reserve.
+        public float PendingDamage => 0f;
+        public void ReservePending(float amount) { }
+        public void ReleasePending(float amount) { }
+
         public event Action<float, float> OnHealthChanged;
         public event Action OnDamaged;
 

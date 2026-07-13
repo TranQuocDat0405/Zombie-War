@@ -17,6 +17,12 @@ namespace ZombieWar.Weapons
         [SerializeField] private Recoil bodyRecoil;     // soldier mesh root, kicks with the gun
         [SerializeField] private LayerMask hitMask;      // Zombie + obstacles
         [SerializeField] private float aimHeight = 1.1f; // aim at zombie chest
+        [Tooltip("Cap on how far ahead of a strafing zombie the soldier aims.")]
+        [SerializeField] private float maxLead = 0.5f;
+        [Tooltip("Inside this range a zombie can contain the muzzle, so the shot is resolved directly instead of by a cast that would silently fail.")]
+        [SerializeField] private float pointBlankRange = 2.2f;
+        [Tooltip("Hold fire until the soldier has turned this close to the target, so rounds never leave his back.")]
+        [SerializeField] private float fireFacingAngle = 50f;
 
         private AutoAim autoAim;
         private PlayerAnimation playerAnimation;
@@ -191,6 +197,26 @@ namespace ZombieWar.Weapons
 
             if (Time.time < nextFireTime) return;
 
+            // Wait for the soldier to come round. Firing the instant AutoAim latched a
+            // zombie behind him sent rounds flying out of his back, because the shot
+            // direction is muzzle->target regardless of which way he is facing.
+            Vector3 toTarget = target.position - transform.position;
+            toTarget.y = 0f;
+            if (toTarget.sqrMagnitude > 0.001f &&
+                Vector3.Angle(transform.forward, toTarget) > fireFacingAngle)
+            {
+                return;
+            }
+
+            // Bullets in the air already carry enough damage to finish this one —
+            // don't waste another round on a corpse-to-be, wait for AutoAim to move on.
+            var targetDamageable = target.GetComponent<IDamageable>();
+            if (targetDamageable != null &&
+                targetDamageable.PendingDamage >= GetRemainingHealth(targetDamageable))
+            {
+                return;
+            }
+
             if (ammo[currentIndex] <= 0)
             {
                 TryStartReload();
@@ -198,35 +224,29 @@ namespace ZombieWar.Weapons
             }
 
             nextFireTime = Time.time + 1f / weapon.fireRate;
-            Fire(weapon, aimPoint);
+            Fire(weapon, aimPoint, targetDamageable, dist);
         }
 
-        private void Fire(WeaponData weapon, Vector3 aimPoint)
+        private static float GetRemainingHealth(IDamageable damageable)
+        {
+            var zombie = damageable as ZombieWar.Zombie.ZombieHealth;
+            return zombie != null ? zombie.Health : float.MaxValue;
+        }
+
+        private void Fire(WeaponData weapon, Vector3 aimPoint, IDamageable target, float dist)
         {
             ammo[currentIndex]--;
 
-            // Bullets leave the barrel, so the barrel is the only correct origin —
-            // the old hitscan fired from the chest, which is why the tracer never
-            // lined up with what actually got hit.
             Vector3 muzzlePos = muzzles[currentIndex].position;
             Vector3 baseDir = (LeadTarget(weapon, muzzlePos, aimPoint) - muzzlePos).normalized;
 
-            for (int i = 0; i < weapon.pelletCount; i++)
+            if (dist <= pointBlankRange && target != null && !target.IsDead)
             {
-                Vector3 dir = baseDir;
-                if (weapon.spreadAngle > 0.01f)
-                {
-                    float yaw = UnityEngine.Random.Range(-weapon.spreadAngle, weapon.spreadAngle);
-                    float pitch = UnityEngine.Random.Range(-weapon.spreadAngle, weapon.spreadAngle) * 0.25f;
-                    dir = Quaternion.Euler(pitch, yaw, 0f) * dir;
-                }
-
-                if (weapon.bulletPrefab != null)
-                {
-                    var go = ObjectPool.Spawn(weapon.bulletPrefab, muzzlePos, Quaternion.LookRotation(dir));
-                    go.GetComponent<Bullet>().Launch(
-                        dir, weapon.bulletSpeed, weapon.damage, weapon.range, hitMask, weapon.impactPrefab);
-                }
+                FirePointBlank(weapon, aimPoint, target, muzzlePos, baseDir);
+            }
+            else
+            {
+                FireProjectiles(weapon, target, muzzlePos, baseDir);
             }
 
             var flash = muzzleFlashes[currentIndex];
@@ -249,9 +269,70 @@ namespace ZombieWar.Weapons
         }
 
         /// <summary>
-        /// Aims where the zombie will be when the bullet arrives, not where it is now.
-        /// Travel time is short (metres / ~45 m-per-sec) so the lead stays subtle and
-        /// the bullet still flies dead straight — no homing needed to land the hit.
+        /// A zombie this close can physically contain the muzzle — its capsule has a
+        /// 0.35m radius and the barrel sits 0.77m out from the player's centre — and a
+        /// cast that starts inside a collider never reports a hit. There is no cast
+        /// that can be trusted here, so resolve the shot directly: it simply cannot
+        /// miss. The bullet is still drawn leaving the barrel, but at this range it
+        /// crosses the gap in about four frames, so nobody can tell it isn't the one
+        /// doing the damage.
+        /// </summary>
+        private void FirePointBlank(WeaponData weapon, Vector3 aimPoint, IDamageable target,
+                                    Vector3 muzzlePos, Vector3 baseDir)
+        {
+            float total = weapon.damage * weapon.pelletCount;
+            target.TakeDamage(total, aimPoint, baseDir);
+
+            if (weapon.impactPrefab != null)
+            {
+                ObjectPool.Spawn(weapon.impactPrefab, aimPoint, Quaternion.LookRotation(-baseDir));
+            }
+
+            if (weapon.bulletPrefab == null) return;
+
+            float flightDistance = Vector3.Distance(muzzlePos, aimPoint);
+            int visuals = Mathf.Min(weapon.pelletCount, 3); // a shotgun still shows a small fan
+            for (int i = 0; i < visuals; i++)
+            {
+                Vector3 dir = ApplySpread(weapon, baseDir);
+                var go = ObjectPool.Spawn(weapon.bulletPrefab, muzzlePos, Quaternion.LookRotation(dir));
+                go.GetComponent<Bullet>().LaunchCosmetic(dir, weapon.bulletSpeed, flightDistance);
+            }
+        }
+
+        private void FireProjectiles(WeaponData weapon, IDamageable target,
+                                     Vector3 muzzlePos, Vector3 baseDir)
+        {
+            if (weapon.bulletPrefab == null) return;
+
+            for (int i = 0; i < weapon.pelletCount; i++)
+            {
+                Vector3 dir = ApplySpread(weapon, baseDir);
+
+                if (target != null) target.ReservePending(weapon.damage);
+
+                var go = ObjectPool.Spawn(weapon.bulletPrefab, muzzlePos, Quaternion.LookRotation(dir));
+                go.GetComponent<Bullet>().Launch(
+                    dir, weapon.bulletSpeed, weapon.damage, weapon.range,
+                    hitMask, weapon.impactPrefab, target, weapon.damage);
+            }
+        }
+
+        private static Vector3 ApplySpread(WeaponData weapon, Vector3 dir)
+        {
+            if (weapon.spreadAngle <= 0.01f) return dir;
+            float yaw = UnityEngine.Random.Range(-weapon.spreadAngle, weapon.spreadAngle);
+            float pitch = UnityEngine.Random.Range(-weapon.spreadAngle, weapon.spreadAngle) * 0.25f;
+            return Quaternion.Euler(pitch, yaw, 0f) * dir;
+        }
+
+        /// <summary>
+        /// Aims where the zombie will be when the bullet arrives. Only the part of its
+        /// velocity that is *across* the line of fire matters: a zombie charging
+        /// straight down the barrel stays on the bullet's path no matter how fast it
+        /// runs, and leading along that axis only threw shots wide whenever it stopped
+        /// or turned. The offset is capped so a bad frame of velocity can't fling the
+        /// aim into empty air.
         /// </summary>
         private Vector3 LeadTarget(WeaponData weapon, Vector3 muzzlePos, Vector3 aimPoint)
         {
@@ -261,8 +342,15 @@ namespace ZombieWar.Weapons
             var agent = target.GetComponentInParent<UnityEngine.AI.NavMeshAgent>();
             if (agent == null || !agent.enabled) return aimPoint;
 
-            float travelTime = Vector3.Distance(muzzlePos, aimPoint) / weapon.bulletSpeed;
-            return aimPoint + agent.velocity * travelTime;
+            Vector3 toTarget = aimPoint - muzzlePos;
+            float travelTime = toTarget.magnitude / weapon.bulletSpeed;
+
+            Vector3 shotDir = toTarget.normalized;
+            Vector3 velocity = agent.velocity;
+            Vector3 lateral = velocity - Vector3.Project(velocity, shotDir);
+
+            Vector3 lead = Vector3.ClampMagnitude(lateral * travelTime, maxLead);
+            return aimPoint + lead;
         }
     }
 }

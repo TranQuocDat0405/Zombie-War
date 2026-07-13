@@ -15,8 +15,6 @@ namespace ZombieWar.Zombie
         [SerializeField] private float attackDamage = 10f;
         [SerializeField] private float attackCooldown = 1.5f;
         [SerializeField] private float damageDelay = 0.45f;
-        [Tooltip("How long the zombie roots itself while committing to a swing.")]
-        [SerializeField] private float swingLock = 0.25f;
         [SerializeField] private float repathInterval = 0.25f;
         [SerializeField] private Animator animator;
         [SerializeField] private AudioClip[] growlClips;
@@ -35,11 +33,13 @@ namespace ZombieWar.Zombie
         private float nextGrowl;
         private float baseSpeed;
         private float frozenUntil;
-        private float swingLockUntil;
+        private CharacterController targetController;
 
         private static readonly int SpeedHash = Animator.StringToHash("Speed");
         private static readonly int AttackHash = Animator.StringToHash("Attack");
         private static readonly int ScreamHash = Animator.StringToHash("Scream");
+        private static readonly int AttackStateHash = Animator.StringToHash("AttackAnim");
+        private const int AttackLayer = 1; // upper-body layer that carries AttackAnim
 
         private void Awake()
         {
@@ -87,39 +87,31 @@ namespace ZombieWar.Zombie
             float dist = Vector3.Distance(transform.position, target.position);
             bool inRange = dist <= attackRange;
 
-            // Only root the zombie for the brief moment it commits to a swing.
-            // Hard-stopping for the whole time it was in range let a running player
-            // (5 m/s) slip straight back out, so the swing always whiffed.
-            bool committed = Time.time < swingLockUntil;
-            agent.isStopped = committed;
+            // Never root the zombie. The Attack layer is masked to the upper body, so
+            // it can keep running while it swings — pinning its feet only let the
+            // player walk out of reach before the punch resolved.
+            agent.isStopped = false;
 
-            if (!committed)
+            // Up close the player outruns a 0.25s repath, so track them tightly.
+            float interval = dist < 3f ? 0.08f : repathInterval;
+            if (Time.time >= nextRepath)
             {
-                // Close in, the player outruns a 0.25s repath — track them tightly.
-                float interval = dist < 3f ? 0.08f : repathInterval;
-                if (Time.time >= nextRepath)
-                {
-                    nextRepath = Time.time + interval;
-                    agent.SetDestination(target.position);
-                }
+                nextRepath = Time.time + interval;
+                agent.SetDestination(target.position);
             }
 
             if (inRange)
             {
                 FaceTarget();
-                if (Time.time >= nextAttack && FacingTarget(50f))
+                if (Time.time >= nextAttack && !IsSwinging() && FacingTarget(50f) && WillConnect())
                 {
                     nextAttack = Time.time + attackCooldown;
-                    swingLockUntil = Time.time + swingLock;
                     if (animator != null) animator.SetTrigger(AttackHash);
                     if (attackClip != null && AudioManager.Instance != null)
                     {
                         AudioManager.Instance.PlaySfxRandomPitch(attackClip, transform.position, 0.7f);
                     }
-                    // animator.speed is scaled by SetSpeedMultiplier, so a fixed delay
-                    // would drift out of sync with the swing as zombies speed up.
-                    float animSpeed = animator != null ? Mathf.Max(0.1f, animator.speed) : 1f;
-                    Invoke(nameof(ApplyDamage), damageDelay / animSpeed);
+                    Invoke(nameof(ApplyDamage), HitDelay());
                 }
             }
 
@@ -147,6 +139,7 @@ namespace ZombieWar.Zombie
             {
                 target = go.transform;
                 targetDamageable = go.GetComponent<IDamageable>();
+                targetController = go.GetComponent<CharacterController>(); // for swing prediction
             }
         }
 
@@ -162,6 +155,56 @@ namespace ZombieWar.Zombie
 
             Vector3 dir = (target.position - transform.position).normalized;
             targetDamageable.TakeDamage(attackDamage, target.position, dir);
+        }
+
+        /// <summary>
+        /// True while the previous swing is still playing. The attack animation is
+        /// longer than the attack cooldown, and AttackAnim has no self-transition — so
+        /// re-triggering mid-swing showed no new punch, yet the damage timer still
+        /// fired. That is the "lost health with no visible attack" bug; this guard
+        /// makes it structurally impossible regardless of how the cooldown is tuned.
+        /// </summary>
+        private bool IsSwinging()
+        {
+            if (animator == null || animator.layerCount <= AttackLayer) return false;
+            var state = animator.GetCurrentAnimatorStateInfo(AttackLayer);
+            if (state.shortNameHash == AttackStateHash) return true;
+            // Also count the blend into the attack, or the trigger would slip through it.
+            return animator.IsInTransition(AttackLayer) &&
+                   animator.GetNextAnimatorStateInfo(AttackLayer).shortNameHash == AttackStateHash;
+        }
+
+        /// <summary>
+        /// Seconds from trigger to the fist landing. animator.speed is scaled by
+        /// SetSpeedMultiplier, so a fixed delay would drift out of sync with the swing
+        /// as zombies speed up over the level.
+        /// </summary>
+        private float HitDelay()
+        {
+            float animSpeed = animator != null ? Mathf.Max(0.1f, animator.speed) : 1f;
+            return damageDelay / animSpeed;
+        }
+
+        /// <summary>
+        /// Would this swing actually land? The punch resolves half a second after it
+        /// starts, and a player moving at 5 m/s covers 2.6m in that time — so judging
+        /// by the current distance made zombies throw punches that were doomed before
+        /// they started. Project both bodies forward to the moment of impact and only
+        /// commit if the blow will still be in reach; otherwise just keep chasing.
+        /// </summary>
+        private bool WillConnect()
+        {
+            float t = HitDelay();
+
+            Vector3 playerVel = targetController != null ? targetController.velocity : Vector3.zero;
+            playerVel.y = 0f;
+            Vector3 selfVel = agent.velocity;
+            selfVel.y = 0f;
+
+            Vector3 futurePlayer = target.position + playerVel * t;
+            Vector3 futureSelf = transform.position + selfVel * t;
+
+            return Vector3.Distance(futureSelf, futurePlayer) <= attackRange + 0.35f;
         }
 
         private bool FacingTarget(float maxAngle)
@@ -198,7 +241,6 @@ namespace ZombieWar.Zombie
         {
             nextAttack = 0f;
             nextRepath = 0f;
-            swingLockUntil = 0f;
             nextGrowl = Time.time + Random.Range(0f, 4f);
             agent.speed = baseSpeed; // spawner re-applies the time-based multiplier
             if (animator != null) animator.speed = animatorBaseSpeed;

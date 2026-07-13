@@ -13,7 +13,6 @@ namespace ZombieWar.UI
         [SerializeField] private AudioClip clickClip;
         [SerializeField] private Button level2Button;
         [SerializeField] private TMPro.TextMeshProUGUI level2Label; // "LEVEL 2 - ..." title line
-        [SerializeField] private GameObject level2LockedLabel;
         [SerializeField] private GameObject level2LockIcon; // crossed chains over the locked button
 
         private void Start()
@@ -40,11 +39,9 @@ namespace ZombieWar.UI
             }
             if (level2Label != null)
             {
-                // Locked: title dims gray and shifts up to make room for the LOCKED line.
-                level2Label.color = level2Open ? Color.white : new Color(0.62f, 0.64f, 0.68f, 0.65f);
-                level2Label.rectTransform.anchoredPosition = level2Open ? Vector2.zero : new Vector2(0f, 16f);
+                // Locked: the title dims so the chains read as the foreground element.
+                level2Label.color = level2Open ? Color.white : new Color(0.62f, 0.64f, 0.68f, 0.55f);
             }
-            if (level2LockedLabel != null) level2LockedLabel.SetActive(!level2Open);
             if (level2LockIcon != null) level2LockIcon.SetActive(!level2Open);
         }
 

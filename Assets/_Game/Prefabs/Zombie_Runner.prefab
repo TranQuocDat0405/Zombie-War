@@ -97,9 +97,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   attackRange: 1.5
   attackDamage: 8
-  attackCooldown: 0.8
-  damageDelay: 0.53
-  swingLock: 0.3
+  attackCooldown: 0.85
+  damageDelay: 0.345
   repathInterval: 0.25
   animator: {fileID: 0}
   growlClips:

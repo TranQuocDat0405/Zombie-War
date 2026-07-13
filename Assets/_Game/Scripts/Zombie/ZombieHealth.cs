@@ -31,6 +31,14 @@ namespace ZombieWar.Zombie
         public bool IsDead { get; private set; }
         public Transform Transform => transform;
         public float MaxHealth { get => maxHealth; set => maxHealth = value; }
+        public float Health => health;
+
+        public float PendingDamage { get; private set; }
+        public void ReservePending(float amount) { PendingDamage += amount; }
+        public void ReleasePending(float amount) { PendingDamage = Mathf.Max(0f, PendingDamage - amount); }
+
+        /// <summary>Health minus damage already on its way — what the aiming code should trust.</summary>
+        public float EffectiveHealth => health - PendingDamage;
 
         private void Awake()
         {
@@ -119,6 +127,7 @@ namespace ZombieWar.Zombie
         {
             IsDead = false;
             health = maxHealth;
+            PendingDamage = 0f; // a recycled zombie must not inherit reservations
             foreach (var col in hitColliders) col.enabled = true;
             if (animator != null) animator.enabled = true;
             AliveCount++;

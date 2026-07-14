@@ -17,8 +17,6 @@ namespace ZombieWar.Weapons
         [SerializeField] private Recoil bodyRecoil;     // soldier mesh root, kicks with the gun
         [SerializeField] private LayerMask hitMask;      // Zombie + obstacles
         [SerializeField] private float aimHeight = 1.1f; // aim at zombie chest
-        [Tooltip("Cap on how far ahead of a strafing zombie the soldier aims.")]
-        [SerializeField] private float maxLead = 0.5f;
         [Tooltip("Inside this range a zombie can contain the muzzle, so the shot is resolved directly instead of by a cast that would silently fail.")]
         [SerializeField] private float pointBlankRange = 2.2f;
         [Tooltip("Hold fire until the soldier has turned this close to the target, so rounds never leave his back.")]
@@ -237,8 +235,9 @@ namespace ZombieWar.Weapons
         {
             ammo[currentIndex]--;
 
+            // No lead needed: the guided round re-aims at the chest every frame.
             Vector3 muzzlePos = muzzles[currentIndex].position;
-            Vector3 baseDir = (LeadTarget(weapon, muzzlePos, aimPoint) - muzzlePos).normalized;
+            Vector3 baseDir = (aimPoint - muzzlePos).normalized;
 
             if (dist <= pointBlankRange && target != null && !target.IsDead)
             {
@@ -290,11 +289,11 @@ namespace ZombieWar.Weapons
 
             if (weapon.bulletPrefab == null) return;
 
+            // The full cone, drawn — the shotgun's fan must read at point-blank too.
             float flightDistance = Vector3.Distance(muzzlePos, aimPoint);
-            int visuals = Mathf.Min(weapon.pelletCount, 3); // a shotgun still shows a small fan
-            for (int i = 0; i < visuals; i++)
+            for (int i = 0; i < weapon.pelletCount; i++)
             {
-                Vector3 dir = ApplySpread(weapon, baseDir);
+                Vector3 dir = i == 0 ? baseDir : ApplySpread(weapon, baseDir);
                 var go = ObjectPool.Spawn(weapon.bulletPrefab, muzzlePos, Quaternion.LookRotation(dir));
                 go.GetComponent<Bullet>().LaunchCosmetic(dir, weapon.bulletSpeed, flightDistance);
             }
@@ -307,14 +306,19 @@ namespace ZombieWar.Weapons
 
             for (int i = 0; i < weapon.pelletCount; i++)
             {
-                Vector3 dir = ApplySpread(weapon, baseDir);
+                // Centre pellet is guided and cannot miss; the rest fan out straight
+                // and hit whatever crosses them — that IS the shotgun cone, and it is
+                // what mows down crowds. Only the guaranteed pellet reserves damage,
+                // so the ammo ledger stays exact.
+                bool guided = i == 0;
+                Vector3 dir = guided ? baseDir : ApplySpread(weapon, baseDir);
 
-                if (target != null) target.ReservePending(weapon.damage);
+                if (guided && target != null) target.ReservePending(weapon.damage);
 
                 var go = ObjectPool.Spawn(weapon.bulletPrefab, muzzlePos, Quaternion.LookRotation(dir));
                 go.GetComponent<Bullet>().Launch(
                     dir, weapon.bulletSpeed, weapon.damage, weapon.range,
-                    hitMask, weapon.impactPrefab, target, weapon.damage);
+                    hitMask, weapon.impactPrefab, guided ? target : null, guided ? weapon.damage : 0f);
             }
         }
 
@@ -326,31 +330,5 @@ namespace ZombieWar.Weapons
             return Quaternion.Euler(pitch, yaw, 0f) * dir;
         }
 
-        /// <summary>
-        /// Aims where the zombie will be when the bullet arrives. Only the part of its
-        /// velocity that is *across* the line of fire matters: a zombie charging
-        /// straight down the barrel stays on the bullet's path no matter how fast it
-        /// runs, and leading along that axis only threw shots wide whenever it stopped
-        /// or turned. The offset is capped so a bad frame of velocity can't fling the
-        /// aim into empty air.
-        /// </summary>
-        private Vector3 LeadTarget(WeaponData weapon, Vector3 muzzlePos, Vector3 aimPoint)
-        {
-            var target = autoAim.CurrentTarget;
-            if (target == null || weapon.bulletSpeed <= 0.01f) return aimPoint;
-
-            var agent = target.GetComponentInParent<UnityEngine.AI.NavMeshAgent>();
-            if (agent == null || !agent.enabled) return aimPoint;
-
-            Vector3 toTarget = aimPoint - muzzlePos;
-            float travelTime = toTarget.magnitude / weapon.bulletSpeed;
-
-            Vector3 shotDir = toTarget.normalized;
-            Vector3 velocity = agent.velocity;
-            Vector3 lateral = velocity - Vector3.Project(velocity, shotDir);
-
-            Vector3 lead = Vector3.ClampMagnitude(lateral * travelTime, maxLead);
-            return aimPoint + lead;
-        }
     }
 }

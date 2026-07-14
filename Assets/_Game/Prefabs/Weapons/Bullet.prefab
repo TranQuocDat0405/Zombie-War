@@ -160,6 +160,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   lifetime: 3
+  castRadius: 0.15
+  homingTurnSpeed: 900
   trail: {fileID: 3396410958220196994}
 --- !u!1 &6282484981291675366
 GameObject:

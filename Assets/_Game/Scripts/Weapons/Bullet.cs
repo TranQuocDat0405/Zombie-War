@@ -4,16 +4,30 @@ using ZombieWar.Core;
 namespace ZombieWar.Weapons
 {
     /// <summary>
-    /// Pooled projectile. Sweeps the distance covered each frame instead of using a
-    /// collider, so it can never tunnel through a zombie and never shoves the
-    /// ragdoll physics around.
+    /// Pooled projectile with three flight modes.
+    ///
+    /// GUIDED — locked onto one zombie: re-aims at the target's current chest every
+    /// frame and detonates on *arrival by distance*, not on collider contact. Earlier
+    /// versions relied on a capped-turn homing cast, and a target close to the flight
+    /// line could out-turn the bullet — it slid past, whipped around, and buried
+    /// itself in the ground. Arrival-by-distance makes a miss structurally
+    /// impossible: walls still stop the round mid-flight, and any other zombie that
+    /// steps into the line simply absorbs it (damage is never wasted).
+    ///
+    /// UNGUIDED — shotgun spread pellets: fly dead straight and hit whatever the
+    /// sweep touches. These are the fan; the blast's centre pellet is guided.
+    ///
+    /// COSMETIC — point-blank shots resolve damage instantly in WeaponController;
+    /// this just draws the round crossing the short gap.
     /// </summary>
     public class Bullet : MonoBehaviour, IPoolable
     {
         [SerializeField] private float lifetime = 3f;
-        [Tooltip("Fat-ray radius. A hairline ray slips past zombies that are strafing.")]
+        [Tooltip("Fat-ray radius for mid-flight sweeps. A hairline ray slips past zombies that are strafing.")]
         [SerializeField] private float castRadius = 0.15f;
         [SerializeField] private TrailRenderer trail;
+
+        private const float ChestHeight = 1.1f;
 
         private Vector3 direction;
         private float speed;
@@ -28,16 +42,10 @@ namespace ZombieWar.Weapons
 
         private IDamageable reservedTarget;
         private float reservedAmount;
+        private Transform guideTarget;
+        private Vector3 lastChest; // where the round finishes if the target dies mid-flight
 
-        /// <summary>
-        /// Aiming and collision both start at the muzzle, so the sweep always follows
-        /// the line the bullet is actually drawn along. (An earlier version aimed from
-        /// the muzzle but swept from the chest 0.57m to the side; at point-blank range
-        /// that parallax threw the sweep nearly a metre wide of the target, so close
-        /// zombies could not be hit at all.) Point-blank shots never reach this class:
-        /// WeaponController resolves them directly, because a cast that begins inside
-        /// a collider can never report a hit.
-        /// </summary>
+        /// <summary>Guided when target is non-null, unguided spread pellet when null.</summary>
         public void Launch(Vector3 dir, float speed, float damage, float range,
                            LayerMask hitMask, GameObject impactPrefab,
                            IDamageable reservedTarget, float reservedAmount)
@@ -50,6 +58,8 @@ namespace ZombieWar.Weapons
             this.impactPrefab = impactPrefab;
             this.reservedTarget = reservedTarget;
             this.reservedAmount = reservedAmount;
+            guideTarget = reservedTarget != null ? reservedTarget.Transform : null;
+            if (guideTarget != null) lastChest = guideTarget.position + Vector3.up * ChestHeight;
             cosmetic = false;
 
             transform.rotation = Quaternion.LookRotation(direction);
@@ -70,6 +80,7 @@ namespace ZombieWar.Weapons
             damage = 0f;
             reservedTarget = null;
             reservedAmount = 0f;
+            guideTarget = null;
             cosmetic = true;
 
             transform.rotation = Quaternion.LookRotation(direction);
@@ -86,6 +97,33 @@ namespace ZombieWar.Weapons
 
             if (!cosmetic)
             {
+                if (guideTarget != null)
+                {
+                    // Track the chest while the target lives; a corpse keeps its last
+                    // chest point so the round finishes there instead of sailing on.
+                    if (reservedTarget != null && !reservedTarget.IsDead)
+                    {
+                        lastChest = guideTarget.position + Vector3.up * ChestHeight;
+                    }
+
+                    Vector3 toChest = lastChest - transform.position;
+                    float distToChest = toChest.magnitude;
+
+                    if (distToChest > 0.0001f)
+                    {
+                        // Instant re-aim. Over an 8.5m flight at 32 m/s this shifts by
+                        // well under a degree per frame — it still reads as straight.
+                        direction = toChest / distToChest;
+                        transform.rotation = Quaternion.LookRotation(direction);
+                    }
+
+                    if (distToChest <= step)
+                    {
+                        Arrive();
+                        return;
+                    }
+                }
+
                 RaycastHit hit;
                 if (Physics.SphereCast(transform.position, castRadius, direction, out hit, step,
                                        hitMask, QueryTriggerInteraction.Ignore))
@@ -104,6 +142,29 @@ namespace ZombieWar.Weapons
             }
         }
 
+        /// <summary>The guided round reached its target's chest.</summary>
+        private void Arrive()
+        {
+            live = false;
+            transform.position = lastChest;
+
+            if (reservedTarget != null && !reservedTarget.IsDead)
+            {
+                reservedTarget.TakeDamage(damage, lastChest, direction);
+            }
+            // Target already down (a bomb got there first): the round just buries
+            // itself in the corpse — impact puff, no onward flight into the dirt.
+
+            if (impactPrefab != null)
+            {
+                ObjectPool.Spawn(impactPrefab, lastChest, Quaternion.LookRotation(-direction));
+            }
+
+            ReleaseReservation();
+            ObjectPool.Release(gameObject);
+        }
+
+        /// <summary>Something physical (wall, ground, another zombie) got in the way first.</summary>
         private void Impact(Vector3 point, Vector3 normal, Collider col)
         {
             live = false;
@@ -131,7 +192,7 @@ namespace ZombieWar.Weapons
             ObjectPool.Release(gameObject);
         }
 
-        /// <summary>Hand the reserved damage back exactly once, whether we hit or missed.</summary>
+        /// <summary>Hand the reserved damage back exactly once, however the flight ended.</summary>
         private void ReleaseReservation()
         {
             if (reservedTarget == null) return;
@@ -151,6 +212,7 @@ namespace ZombieWar.Weapons
         public void OnDespawned()
         {
             live = false;
+            guideTarget = null;
             ReleaseReservation(); // safety net if the pool reclaims a bullet mid-flight
             if (trail != null) trail.Clear();
         }

@@ -33,13 +33,13 @@ namespace ZombieWar.UI
                 titleText.text = won ? "VICTORY!" : "YOU DIED";
                 titleText.color = won ? new Color(0.4f, 1f, 0.45f) : new Color(1f, 0.35f, 0.3f);
             }
-            if (statsText != null && GameManager.Instance != null)
+            if (statsText != null && LevelManager.Instance != null)
             {
-                statsText.text = "Zombies killed: " + GameManager.Instance.Kills;
+                statsText.text = "Zombies killed: " + LevelManager.Instance.Kills;
             }
             if (unlockText != null)
             {
-                int justUnlocked = GameManager.Instance != null ? GameManager.Instance.JustUnlockedLevel : 0;
+                int justUnlocked = LevelManager.Instance != null ? LevelManager.Instance.JustUnlockedLevel : 0;
                 bool showUnlock = won && justUnlocked > 0;
                 unlockText.gameObject.SetActive(showUnlock);
                 if (showUnlock) unlockText.text = "LEVEL " + justUnlocked + " UNLOCKED!";
@@ -64,12 +64,12 @@ namespace ZombieWar.UI
 
         public void OnRestartPressed()
         {
-            if (GameManager.Instance != null) GameManager.Instance.RestartLevel();
+            if (LevelManager.Instance != null) LevelManager.Instance.RestartLevel();
         }
 
         public void OnNextLevelPressed()
         {
-            if (GameManager.Instance != null) GameManager.Instance.LoadScene(nextSceneName);
+            if (LevelManager.Instance != null) LevelManager.Instance.LoadScene(nextSceneName);
         }
 
         public void OnHomePressed()

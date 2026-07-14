@@ -32,7 +32,7 @@ namespace ZombieWar.UI
         {
             if (paused) return;
             // After win/lose the ResultPanel owns the screen — don't stack menus.
-            if (GameManager.Instance != null && GameManager.Instance.State != GameState.Playing) return;
+            if (LevelManager.Instance != null && LevelManager.Instance.State != GameState.Playing) return;
 
             paused = true;
             previousTimeScale = Time.timeScale;

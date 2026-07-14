@@ -37,9 +37,9 @@ namespace ZombieWar.Zombie
         private void Update()
         {
             if (config == null || zombiePrefab == null) return;
-            if (GameManager.Instance == null || GameManager.Instance.State != GameState.Playing) return;
+            if (LevelManager.Instance == null || LevelManager.Instance.State != GameState.Playing) return;
 
-            float elapsed = GameManager.Instance.TimeElapsed;
+            float elapsed = LevelManager.Instance.TimeElapsed;
             int phaseIndex = config.GetPhaseIndex(elapsed);
             var phase = config.phases[phaseIndex];
 
@@ -110,7 +110,7 @@ namespace ZombieWar.Zombie
 
         private static float TimeFraction()
         {
-            var gm = GameManager.Instance;
+            var gm = LevelManager.Instance;
             if (gm == null) return 0f;
             float total = gm.TimeElapsed + gm.TimeRemaining;
             return total > 0f ? gm.TimeElapsed / total : 0f;

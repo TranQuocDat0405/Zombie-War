@@ -40,11 +40,11 @@ namespace ZombieWar.UI
                 if (weaponController.CurrentWeapon != null) OnWeaponChanged(weaponController.CurrentWeapon);
                 OnAmmoChanged();
             }
-            if (GameManager.Instance != null)
+            if (LevelManager.Instance != null)
             {
-                GameManager.Instance.OnKillsChanged += OnKillsChanged;
-                GameManager.Instance.OnStateChanged += OnStateChanged;
-                OnKillsChanged(GameManager.Instance.Kills);
+                LevelManager.Instance.OnKillsChanged += OnKillsChanged;
+                LevelManager.Instance.OnStateChanged += OnStateChanged;
+                OnKillsChanged(LevelManager.Instance.Kills);
             }
             if (bombThrower != null)
             {
@@ -65,10 +65,10 @@ namespace ZombieWar.UI
                 weaponController.OnWeaponChanged -= OnWeaponChanged;
                 weaponController.OnAmmoChanged -= OnAmmoChanged;
             }
-            if (GameManager.Instance != null)
+            if (LevelManager.Instance != null)
             {
-                GameManager.Instance.OnKillsChanged -= OnKillsChanged;
-                GameManager.Instance.OnStateChanged -= OnStateChanged;
+                LevelManager.Instance.OnKillsChanged -= OnKillsChanged;
+                LevelManager.Instance.OnStateChanged -= OnStateChanged;
             }
             if (bombThrower != null) bombThrower.OnBombCountChanged -= OnBombCountChanged;
         }
@@ -82,9 +82,9 @@ namespace ZombieWar.UI
 
         private void Update()
         {
-            if (GameManager.Instance != null && timerText != null)
+            if (LevelManager.Instance != null && timerText != null)
             {
-                float t = Mathf.Max(0f, GameManager.Instance.TimeRemaining);
+                float t = Mathf.Max(0f, LevelManager.Instance.TimeRemaining);
                 timerText.text = string.Format("{0:00}:{1:00}", (int)(t / 60f), (int)(t % 60f));
             }
             if (bombThrower != null && bombCooldownFill != null)

@@ -34,11 +34,11 @@ namespace ZombieWar.Core
 
         private void Update()
         {
-            if (GameManager.Instance == null || GameManager.Instance.State != GameState.Playing) return;
+            if (LevelManager.Instance == null || LevelManager.Instance.State != GameState.Playing) return;
             if (Time.time < nextSpawn) return;
 
             // Drops arrive much faster late game to keep pace with the bigger horde.
-            var gm = GameManager.Instance;
+            var gm = LevelManager.Instance;
             float total = gm.TimeElapsed + gm.TimeRemaining;
             float fraction = total > 0f ? gm.TimeElapsed / total : 0f;
             nextSpawn = Time.time + Random.Range(minInterval, maxInterval) * Mathf.Lerp(1f, 0.45f, fraction);

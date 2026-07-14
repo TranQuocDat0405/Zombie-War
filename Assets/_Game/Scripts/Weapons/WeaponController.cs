@@ -178,7 +178,7 @@ namespace ZombieWar.Weapons
         {
             var weapon = CurrentWeapon;
             if (weapon == null || autoAim == null) return;
-            if (GameManager.Instance != null && GameManager.Instance.State != GameState.Playing) return;
+            if (LevelManager.Instance != null && LevelManager.Instance.State != GameState.Playing) return;
 
             if (isReloading)
             {

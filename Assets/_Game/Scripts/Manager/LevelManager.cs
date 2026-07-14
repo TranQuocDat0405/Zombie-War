@@ -8,12 +8,17 @@ namespace ZombieWar.Core
 
     /// <summary>
     /// Per-level state machine: survival timer, kill counter, win/lose flow.
+    /// Lives inside each Level scene. (Renamed from the old GameManager.)
     /// </summary>
-    public class GameManager : MonoBehaviour
+    public class LevelManager : MonoBehaviour
     {
-        public static GameManager Instance { get; private set; }
+        public static LevelManager Instance { get; private set; }
 
         [SerializeField] private float levelDuration = 180f;
+        [Tooltip("1-based level number — MUST match the scene (Level1 = 1, Level2 = 2). Replaces scene-name parsing for unlocks.")]
+        [SerializeField] private int levelNumber = 1;
+
+        public int LevelNumber => levelNumber;
 
         public GameState State { get; private set; } = GameState.Playing;
         public float TimeRemaining { get; private set; }
@@ -55,6 +60,13 @@ namespace ZombieWar.Core
                 SetState(GameState.Won);
             }
         }
+
+        /// <summary>
+        /// Called by the app-level GameManager once the level scene is loaded and the
+        /// HUD is open. Placeholder during the refactor: the tutorial gate moves here
+        /// in the final phase; until then the old in-scene flow keeps working as-is.
+        /// </summary>
+        public void Begin() { }
 
         public void RegisterKill()
         {

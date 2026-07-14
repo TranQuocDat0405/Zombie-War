@@ -62,7 +62,7 @@ namespace ZombieWar.Zombie
             if (health != null && health.IsDead) return;
             if (!agent.enabled || !agent.isOnNavMesh) return;
 
-            if (LevelManager.Instance != null && LevelManager.Instance.State != GameState.Playing)
+            if (LevelManager.I != null && LevelManager.I.State != GameState.Playing)
             {
                 agent.isStopped = true;
                 if (animator != null) animator.SetFloat(SpeedHash, 0f);

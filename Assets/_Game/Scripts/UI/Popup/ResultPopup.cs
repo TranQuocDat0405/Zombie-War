@@ -16,7 +16,7 @@ namespace ZombieWar.UI
 
         public void Show(bool won)
         {
-            var level = LevelManager.Instance;
+            var level = LevelManager.I;
 
             if (titleText != null)
             {

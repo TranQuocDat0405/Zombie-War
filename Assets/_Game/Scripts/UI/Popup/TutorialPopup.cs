@@ -14,7 +14,7 @@ namespace ZombieWar.UI
             UserData.I.HasSeenTutorial = true;
             Time.timeScale = 1f;
             CloseSelf();
-            LevelManager.Instance.Begin();
+            LevelManager.I.Begin();
         }
 
         // The player must acknowledge the tutorial — back key doesn't dismiss it.

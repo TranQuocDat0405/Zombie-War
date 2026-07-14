@@ -1,6 +1,6 @@
+using NFramework;
 using UnityEditor;
 using UnityEngine;
-using ZombieWar.Core;
 
 namespace ZombieWar.EditorTools
 {
@@ -13,15 +13,21 @@ namespace ZombieWar.EditorTools
         [MenuItem("ZombieWar/Reset Level Progress")]
         private static void ResetProgress()
         {
-            GameSettings.ResetProgress();
-            Debug.Log("[ZombieWar] Level progress reset — only Level 1 is unlocked now.");
+            // Progress now lives in the NFramework save file (UserData + SoundManager).
+            SaveManager.DeleteSave();
+            Debug.Log("[ZombieWar] Save deleted — progress, tutorial flag and volumes reset.");
         }
 
         [MenuItem("ZombieWar/Unlock All Levels")]
         private static void UnlockAll()
         {
-            GameSettings.UnlockLevel(GameSettings.MaxLevel);
-            Debug.Log("[ZombieWar] All levels unlocked (highest = " + GameSettings.MaxLevel + ").");
+            if (!Application.isPlaying || !UserData.IsSingletonAlive)
+            {
+                Debug.LogWarning("[ZombieWar] Enter Play Mode (Main scene) first — UserData must be alive to unlock.");
+                return;
+            }
+            UserData.I.UnlockLevel(UserData.MaxLevel);
+            Debug.Log("[ZombieWar] All levels unlocked (highest = " + UserData.MaxLevel + ").");
         }
     }
 }

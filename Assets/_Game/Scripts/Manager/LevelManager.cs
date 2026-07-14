@@ -1,6 +1,7 @@
 using System;
+using NFramework;
 using UnityEngine;
-using UnityEngine.SceneManagement;
+using ZombieWar.UI;
 
 namespace ZombieWar.Core
 {
@@ -8,19 +9,17 @@ namespace ZombieWar.Core
 
     /// <summary>
     /// Per-level state machine: survival timer, kill counter, win/lose flow.
-    /// Lives inside each Level scene. (Renamed from the old GameManager.)
+    /// Lives inside each Level scene (loaded additively under Main); app-level
+    /// flow (loading, home, restart) belongs to GameManager.
     /// </summary>
-    public class LevelManager : MonoBehaviour
+    public class LevelManager : SingletonMono<LevelManager>
     {
-        public static LevelManager Instance { get; private set; }
-
-        [SerializeField] private float levelDuration = 180f;
         [Tooltip("1-based level number — MUST match the scene (Level1 = 1, Level2 = 2). Replaces scene-name parsing for unlocks.")]
         [SerializeField] private int levelNumber = 1;
 
         [Header("Match context (wired per Level scene)")]
         // The HUD lives in a Resources prefab and cannot serialize references into
-        // this scene, so it resolves everything through LevelManager.Instance instead.
+        // this scene, so it resolves everything through LevelManager.I instead.
         [SerializeField] private Player.PlayerHealth playerHealth;
         [SerializeField] private Weapons.WeaponController weaponController;
         [SerializeField] private Weapons.BombThrower bombThrower;
@@ -32,7 +31,7 @@ namespace ZombieWar.Core
 
         public GameState State { get; private set; } = GameState.Playing;
         public float TimeRemaining { get; private set; }
-        public float TimeElapsed => levelDuration - TimeRemaining;
+        public float TimeElapsed => LevelDuration - TimeRemaining;
         public int Kills { get; private set; }
 
         /// <summary>Level number newly unlocked by this win (0 = nothing new).</summary>
@@ -41,12 +40,14 @@ namespace ZombieWar.Core
         public event Action<GameState> OnStateChanged;
         public event Action<int> OnKillsChanged;
 
-        private void Awake()
+        private bool _begun;
+
+        private float LevelDuration => GameManager.I.GetGameConfig().levelDuration;
+
+        protected override void Awake()
         {
-            Instance = this;
-            TimeRemaining = levelDuration;
-            Time.timeScale = 1f;
-            Application.targetFrameRate = 60;
+            base.Awake();
+            TimeRemaining = GameManager.IsSingletonAlive ? LevelDuration : 180f;
 
             // Ragdoll bones must not shove the player or live zombies around.
             int player = LayerMask.NameToLayer("Player");
@@ -59,9 +60,25 @@ namespace ZombieWar.Core
             }
         }
 
+        /// <summary>
+        /// Called by GameManager once the scene is loaded and the HUD is open.
+        /// First visit to Level 1 pauses behind the tutorial; GOT IT re-enters here.
+        /// </summary>
+        public void Begin()
+        {
+            if (levelNumber == 1 && !UserData.I.HasSeenTutorial)
+            {
+                Time.timeScale = 0f;
+                UIManager.I.Open(Define.UIName.TUTORIAL_POPUP);
+                return; // TutorialPopup.OnGotItPressed calls Begin() again
+            }
+            _begun = true;
+            Time.timeScale = 1f;
+        }
+
         private void Update()
         {
-            if (State != GameState.Playing) return;
+            if (!_begun || State != GameState.Playing) return;
 
             TimeRemaining -= Time.deltaTime;
             if (TimeRemaining <= 0f)
@@ -70,13 +87,6 @@ namespace ZombieWar.Core
                 SetState(GameState.Won);
             }
         }
-
-        /// <summary>
-        /// Called by the app-level GameManager once the level scene is loaded and the
-        /// HUD is open. Placeholder during the refactor: the tutorial gate moves here
-        /// in the final phase; until then the old in-scene flow keeps working as-is.
-        /// </summary>
-        public void Begin() { }
 
         public void RegisterKill()
         {
@@ -95,40 +105,19 @@ namespace ZombieWar.Core
 
             if (state == GameState.Won)
             {
-                // "Level1" -> unlock level 2; persists via PlayerPrefs.
-                string sceneName = SceneManager.GetActiveScene().name;
-                if (sceneName.StartsWith("Level") &&
-                    int.TryParse(sceneName.Substring(5), out int levelNumber))
+                if (UserData.I.UnlockLevel(levelNumber + 1))
                 {
-                    if (GameSettings.UnlockLevel(levelNumber + 1))
-                    {
-                        JustUnlockedLevel = levelNumber + 1;
-                    }
+                    JustUnlockedLevel = levelNumber + 1;
                 }
             }
 
             OnStateChanged?.Invoke(state);
-            if (state != GameState.Playing) Time.timeScale = 0.4f;
-        }
-
-        public void RestartLevel()
-        {
-            Time.timeScale = 1f;
-            string current = SceneManager.GetActiveScene().name;
-            if (SceneLoader.Instance != null) SceneLoader.Load(current);
-            else SceneManager.LoadScene(current);
-        }
-
-        public void LoadScene(string sceneName)
-        {
-            Time.timeScale = 1f;
-            if (SceneLoader.Instance != null) SceneLoader.Load(sceneName);
-            else SceneManager.LoadScene(sceneName);
-        }
-
-        private void OnDestroy()
-        {
-            if (Instance == this) Instance = null;
+            if (state != GameState.Playing)
+            {
+                Time.timeScale = GameManager.I.GetGameConfig().endSlowMotionScale;
+                UIManager.I.Open<ResultPopup>(Define.UIName.RESULT_POPUP,
+                    p => p.Show(state == GameState.Won));
+            }
         }
     }
 }

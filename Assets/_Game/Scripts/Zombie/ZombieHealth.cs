@@ -105,7 +105,7 @@ namespace ZombieWar.Zombie
             IsDead = true;
             AliveCount = Mathf.Max(0, AliveCount - 1);
 
-            if (LevelManager.Instance != null) LevelManager.Instance.RegisterKill();
+            if (LevelManager.I != null) LevelManager.I.RegisterKill();
             if (WorldSoundManager.I != null && deathClips != null && deathClips.Length > 0)
             {
                 WorldSoundManager.I.PlaySfxRandomPitch(

@@ -43,7 +43,7 @@ namespace ZombieWar.Player
         {
             if (IsDead) return;
             if (Time.time - lastHitTime < invulnerabilityTime) return;
-            if (LevelManager.Instance != null && LevelManager.Instance.State != GameState.Playing) return;
+            if (LevelManager.I != null && LevelManager.I.State != GameState.Playing) return;
 
             lastHitTime = Time.time;
             health = Mathf.Max(0f, health - amount);
@@ -60,7 +60,7 @@ namespace ZombieWar.Player
             if (health <= 0f)
             {
                 IsDead = true;
-                if (LevelManager.Instance != null) LevelManager.Instance.PlayerDied();
+                if (LevelManager.I != null) LevelManager.I.PlayerDied();
             }
         }
     }

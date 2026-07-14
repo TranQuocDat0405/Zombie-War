@@ -10,7 +10,7 @@ namespace ZombieWar.UI
     /// <summary>
     /// In-match HUD as a UIManager view (ported from HUDController). Lives in a
     /// Resources prefab, so all gameplay references are resolved through
-    /// LevelManager.Instance in OnOpen — GameManager guarantees the level scene is
+    /// LevelManager.I in OnOpen — GameManager guarantees the level scene is
     /// loaded before this view opens.
     /// </summary>
     public class GamePlayMenu : BaseUIView
@@ -38,7 +38,7 @@ namespace ZombieWar.UI
         {
             base.OnOpen();
 
-            level = LevelManager.Instance;
+            level = LevelManager.I;
             playerHealth = level != null ? level.PlayerHealth : null;
             weaponController = level != null ? level.WeaponController : null;
             bombThrower = level != null ? level.BombThrower : null;

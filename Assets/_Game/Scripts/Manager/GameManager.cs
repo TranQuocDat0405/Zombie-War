@@ -17,6 +17,8 @@ namespace ZombieWar
     public class GameManager : SingletonMono<GameManager>
     {
         [SerializeField] private GameConfig _gameConfig;
+        [Tooltip("Listener on Main's camera. Level scenes carry their own listener on the gameplay camera (needed for 3D positional SFX), so this one turns off while a level is loaded — Unity allows only one active listener.")]
+        [SerializeField] private AudioListener _mainListener;
 
         private EGameState _state;
         public EGameState GetGameState() => _state;
@@ -57,6 +59,7 @@ namespace ZombieWar
                     break;
 
                 case EGameState.HOME:
+                    if (_mainListener != null) _mainListener.enabled = true; // no level camera at home
                     SoundManager.I.StopMusic();
                     SoundManager.I.PlayMusicResource(Define.SoundBG.BGM_MAIN);
                     UIManager.I.Open(Define.UIName.HOME_MENU);
@@ -67,9 +70,10 @@ namespace ZombieWar
                     UIManager.I.Open<LoadingPopup>(Define.UIName.LOADING_POPUP).AssignEvent(null);
                     StartCoroutine(CRLoadScene(Define.SceneName.Level(CurrentLevel), () =>
                     {
+                        if (_mainListener != null) _mainListener.enabled = false; // level camera's listener takes over
                         UIManager.I.Open(Define.UIName.GAMEPLAY_MENU);
                         UIManager.I.Close(Define.UIName.LOADING_POPUP);
-                        Core.LevelManager.Instance.Begin();
+                        Core.LevelManager.I.Begin();
                     }));
                     break;
 
@@ -128,8 +132,14 @@ namespace ZombieWar
             Time.timeScale = 1f;
             UIManager.I.CloseAllInLayer(EUILayer.Popup);
             UIManager.I.Close(Define.UIName.GAMEPLAY_MENU);
-            StartCoroutine(CRUnloadScene(Define.SceneName.Level(CurrentLevel),
-                () => EnterInGame(next)));
+            StartCoroutine(CRUnloadScene(Define.SceneName.Level(CurrentLevel), () =>
+            {
+                // The state is still INGAME here, and SetGameState early-outs on a
+                // same-state transition — without this reset the next level's load
+                // handler would never run and the game would hang on Main.
+                _state = EGameState.NONE;
+                EnterInGame(next);
+            }));
         }
 
         public GameConfig GetGameConfig() => _gameConfig;

@@ -26,7 +26,7 @@ namespace ZombieWar.Weapons
         public bool CanThrow =>
             BombCount > 0 &&
             Time.time >= nextThrowTime &&
-            (LevelManager.Instance == null || LevelManager.Instance.State == GameState.Playing);
+            (LevelManager.I == null || LevelManager.I.State == GameState.Playing);
 
         public event Action OnBombCountChanged;
 

@@ -18,7 +18,17 @@ namespace ZombieWar.Core
         [Tooltip("1-based level number — MUST match the scene (Level1 = 1, Level2 = 2). Replaces scene-name parsing for unlocks.")]
         [SerializeField] private int levelNumber = 1;
 
+        [Header("Match context (wired per Level scene)")]
+        // The HUD lives in a Resources prefab and cannot serialize references into
+        // this scene, so it resolves everything through LevelManager.Instance instead.
+        [SerializeField] private Player.PlayerHealth playerHealth;
+        [SerializeField] private Weapons.WeaponController weaponController;
+        [SerializeField] private Weapons.BombThrower bombThrower;
+
         public int LevelNumber => levelNumber;
+        public Player.PlayerHealth PlayerHealth => playerHealth;
+        public Weapons.WeaponController WeaponController => weaponController;
+        public Weapons.BombThrower BombThrower => bombThrower;
 
         public GameState State { get; private set; } = GameState.Playing;
         public float TimeRemaining { get; private set; }

@@ -153,6 +153,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _gameConfig: {fileID: 11400000, guid: 62ea6a96411a1ab46a50e7016cd7c156, type: 2}
   _mainListener: {fileID: 1854007181}
+  _mainCamera: {fileID: 1854007182}
 --- !u!4 &204503614
 Transform:
   m_ObjectHideFlags: 0

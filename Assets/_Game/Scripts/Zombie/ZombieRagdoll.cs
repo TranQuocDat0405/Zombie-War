@@ -57,11 +57,18 @@ namespace ZombieWar.Zombie
             if (animator != null) animator.enabled = !enabled;
         }
 
+        /// <summary>
+        /// Blast fling. VelocityChange on purpose: the hips weigh 12kg while a
+        /// forearm weighs 1.5kg, so a plain impulse either barely nudges the torso
+        /// (corpse just tips over — the old bug) or sends the limbs flying while the
+        /// body stays put. Ignoring mass launches the whole ragdoll coherently;
+        /// "force" is metres-per-second at the blast centre, fading with distance.
+        /// </summary>
         public void ApplyExplosion(float force, Vector3 center, float radius, float upModifier)
         {
             foreach (var rb in bodies)
             {
-                rb.AddExplosionForce(force, center, radius, upModifier, ForceMode.Impulse);
+                rb.AddExplosionForce(force, center, radius, upModifier, ForceMode.VelocityChange);
             }
         }
 

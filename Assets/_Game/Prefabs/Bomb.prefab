@@ -149,7 +149,7 @@ MonoBehaviour:
   fuseTime: 1.1
   damage: 65
   radius: 4.5
-  explosionForce: 9
+  explosionForce: 6.5
   zombieMask:
     serializedVersion: 2
     m_Bits: 512

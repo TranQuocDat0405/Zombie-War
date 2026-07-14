@@ -90,7 +90,7 @@ namespace ZombieWar.Zombie
             if (ragdoll != null)
             {
                 ragdoll.SetRagdoll(true);
-                ragdoll.ApplyExplosion(force, center, radius, 0.6f);
+                ragdoll.ApplyExplosion(force, center, radius, 1.2f); // higher up-modifier: corpses pop up and arc away
                 StartCoroutine(DeathRoutine(ragdollDeathDelay));
             }
             else

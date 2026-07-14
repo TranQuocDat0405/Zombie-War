@@ -1,33 +1,28 @@
 using Cinemachine;
+using NFramework;
 using UnityEngine;
 
 namespace ZombieWar.Core
 {
     /// <summary>
     /// Fires Cinemachine impulses for weapon recoil, hits and explosions.
-    /// Attach next to a CinemachineImpulseSource.
+    /// Attach next to a CinemachineImpulseSource. Lives in each Level scene
+    /// (the gameplay camera is per-level), accessed as CameraShake.I.
     /// </summary>
     [RequireComponent(typeof(CinemachineImpulseSource))]
-    public class CameraShake : MonoBehaviour
+    public class CameraShake : SingletonMono<CameraShake>
     {
-        public static CameraShake Instance { get; private set; }
-
         private CinemachineImpulseSource impulse;
 
-        private void Awake()
+        protected override void Awake()
         {
-            Instance = this;
+            base.Awake();
             impulse = GetComponent<CinemachineImpulseSource>();
         }
 
         public void Shake(float force)
         {
             if (impulse != null) impulse.GenerateImpulseWithForce(force);
-        }
-
-        private void OnDestroy()
-        {
-            if (Instance == this) Instance = null;
         }
     }
 }

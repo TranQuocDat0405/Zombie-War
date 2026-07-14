@@ -50,10 +50,10 @@ namespace ZombieWar.Player
             OnHealthChanged?.Invoke(health, maxHealth);
             OnDamaged?.Invoke();
 
-            if (CameraShake.Instance != null) CameraShake.Instance.Shake(0.4f);
-            if (AudioManager.Instance != null && hurtClips != null && hurtClips.Length > 0)
+            if (CameraShake.I != null) CameraShake.I.Shake(0.4f);
+            if (WorldSoundManager.I != null && hurtClips != null && hurtClips.Length > 0)
             {
-                AudioManager.Instance.PlaySfxRandomPitch(
+                WorldSoundManager.I.PlaySfxRandomPitch(
                     hurtClips[UnityEngine.Random.Range(0, hurtClips.Length)], transform.position, 0.8f);
             }
 

@@ -9,7 +9,6 @@ namespace ZombieWar.Player
     [RequireComponent(typeof(CharacterController))]
     public class PlayerController : MonoBehaviour
     {
-        [SerializeField] private Joystick joystick;
         [SerializeField] private float moveSpeed = 5f;
         [SerializeField] private float rotationSpeed = 14f;
         [SerializeField] private Animator animator;
@@ -17,6 +16,26 @@ namespace ZombieWar.Player
         private CharacterController controller;
         private AutoAim autoAim;
         private float verticalVelocity;
+        private Joystick _joystick;
+
+        /// <summary>
+        /// The joystick now lives in the GamePlayMenu prefab (another scene's UI),
+        /// so it can't be a serialized reference — resolve it lazily through
+        /// UIManager. Null for the first frame or two before the HUD opens; the
+        /// soldier just stands still, which is imperceptible.
+        /// </summary>
+        private Joystick joystick
+        {
+            get
+            {
+                if (_joystick == null && NFramework.UIManager.IsSingletonAlive)
+                {
+                    var hud = NFramework.UIManager.I.GetOpenedView<UI.GamePlayMenu>(Define.UIName.GAMEPLAY_MENU);
+                    if (hud != null) _joystick = hud.Joystick;
+                }
+                return _joystick;
+            }
+        }
 
         private static readonly int SpeedHash = Animator.StringToHash("Speed");
         private static readonly int MoveXHash = Animator.StringToHash("MoveX");

@@ -254,13 +254,13 @@ namespace ZombieWar.Weapons
                 flash.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
                 flash.Play(true); // same frame the bullet leaves the barrel
             }
-            if (weapon.fireClip != null && AudioManager.Instance != null)
+            if (weapon.fireClip != null && WorldSoundManager.I != null)
             {
-                AudioManager.Instance.PlaySfxRandomPitch(weapon.fireClip, muzzlePos, weapon.fireVolume);
+                WorldSoundManager.I.PlaySfxRandomPitch(weapon.fireClip, muzzlePos, weapon.fireVolume);
             }
             if (recoil != null) recoil.Kick(weapon.recoilKick);
             if (bodyRecoil != null) bodyRecoil.Kick(weapon.recoilKick * 4f); // whole-body jerk, clearly visible
-            if (CameraShake.Instance != null) CameraShake.Instance.Shake(weapon.cameraShake);
+            if (CameraShake.I != null) CameraShake.I.Shake(weapon.cameraShake);
             if (playerAnimation != null) playerAnimation.NotifyFiring();
 
             OnAmmoChanged?.Invoke();

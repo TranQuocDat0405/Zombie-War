@@ -49,13 +49,13 @@ namespace ZombieWar.Weapons
             {
                 ObjectPool.Spawn(explosionVfx, center, Quaternion.identity);
             }
-            if (explosionClip != null && AudioManager.Instance != null)
+            if (explosionClip != null && WorldSoundManager.I != null)
             {
                 // 3D for direction, but with a huge loudness plateau so the blast
                 // dwarfs the gunfire anywhere near the arena.
-                AudioManager.Instance.PlaySfx(explosionClip, center, 1f, 1f, true, 18f);
+                WorldSoundManager.I.PlaySfx(explosionClip, center, 1f, 1f, true, 18f);
             }
-            if (CameraShake.Instance != null) CameraShake.Instance.Shake(1.6f);
+            if (CameraShake.I != null) CameraShake.I.Shake(1.6f);
 
             int count = Physics.OverlapSphereNonAlloc(center, radius, hits, zombieMask);
             for (int i = 0; i < count; i++)

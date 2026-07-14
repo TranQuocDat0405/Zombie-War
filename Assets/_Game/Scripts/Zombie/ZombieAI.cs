@@ -107,9 +107,9 @@ namespace ZombieWar.Zombie
                 {
                     nextAttack = Time.time + attackCooldown;
                     if (animator != null) animator.SetTrigger(AttackHash);
-                    if (attackClip != null && AudioManager.Instance != null)
+                    if (attackClip != null && WorldSoundManager.I != null)
                     {
-                        AudioManager.Instance.PlaySfxRandomPitch(attackClip, transform.position, 0.7f);
+                        WorldSoundManager.I.PlaySfxRandomPitch(attackClip, transform.position, 0.7f);
                     }
                     Invoke(nameof(ApplyDamage), HitDelay());
                 }
@@ -124,9 +124,9 @@ namespace ZombieWar.Zombie
             if (Time.time >= nextGrowl && growlClips != null && growlClips.Length > 0)
             {
                 nextGrowl = Time.time + Random.Range(5f, 10f);
-                if (AudioManager.Instance != null)
+                if (WorldSoundManager.I != null)
                 {
-                    AudioManager.Instance.PlaySfxRandomPitch(
+                    WorldSoundManager.I.PlaySfxRandomPitch(
                         growlClips[Random.Range(0, growlClips.Length)], transform.position, 0.5f);
                 }
             }
@@ -254,9 +254,9 @@ namespace ZombieWar.Zombie
             {
                 frozenUntil = Time.time + spawnScreamDuration;
                 if (animator != null) animator.SetTrigger(ScreamHash);
-                if (growlClips != null && growlClips.Length > 0 && AudioManager.Instance != null)
+                if (growlClips != null && growlClips.Length > 0 && WorldSoundManager.I != null)
                 {
-                    AudioManager.Instance.PlaySfx(
+                    WorldSoundManager.I.PlaySfx(
                         growlClips[Random.Range(0, growlClips.Length)], transform.position, 0.9f, 1.1f);
                 }
             }

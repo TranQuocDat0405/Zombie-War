@@ -3,7 +3,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using PlayAd.SDK.Ads;
 using UnityEngine;
 
 namespace NFramework
@@ -106,7 +105,6 @@ namespace NFramework
         private void OnApplicationQuit()
         {
             Save();
-            PlayAdSupport.GetUser().SaveAllAsync();
         }
 
         public void RegisterSaveData(ISaveable data) => _saveDict[data.SaveKey] = data;
